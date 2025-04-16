@@ -33,13 +33,6 @@ const ImageResult: React.FC<ImageResultProps> = ({ generationResult, setIsLoadin
       }
     };
   }, [pollingInterval]);
-
-  useEffect(() => {
-    if (result?.status === 'completed' && result.image_url) {
-      console.log('Image URL:', result.image_url);
-      console.log('test:', `${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}`);
-    }
-  }, [result]);
   
   // Start polling for status updates
   const startStatusPolling = (generationId: string) => {
