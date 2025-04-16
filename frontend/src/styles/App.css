@@ -1,0 +1,114 @@
+.app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  .app-header {
+    background-color: var(--primary-color);
+    color: var(--white);
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  
+  .app-header h1 {
+    color: var(--white);
+    margin-bottom: 0.5rem;
+  }
+  
+  .app-header p {
+    max-width: 600px;
+    margin: 0 auto;
+    opacity: 0.9;
+  }
+  
+  .app-content {
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    flex-grow: 1;
+  }
+  
+  @media (min-width: 1024px) {
+    .app-content {
+      flex-direction: row;
+      gap: 2rem;
+    }
+  }
+  
+  .canvas-container,
+  .result-container {
+    flex: 1;
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .canvas-container h2,
+  .result-container h2 {
+    margin-bottom: 1rem;
+  }
+  
+  .style-controls {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .description-input {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .description-input label {
+    font-weight: 500;
+    color: var(--dark-gray);
+  }
+  
+  .description-input input {
+    padding: 10px;
+    border: 1px solid var(--medium-gray);
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  .canvas-controls {
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .generate-button {
+    background-color: var(--secondary-color);
+    color: var(--white);
+    font-weight: 600;
+    padding: 12px 20px;
+    flex-grow: 1;
+  }
+  
+  .generate-button:hover {
+    background-color: var(--secondary-dark);
+  }
+  
+  .clear-button {
+    background-color: var(--light-gray);
+    color: var(--dark-gray);
+  }
+  
+  .clear-button:hover {
+    background-color: var(--medium-gray);
+  }
+  
+  .excalidraw-wrapper {
+    border: 1px solid var(--medium-gray);
+    border-radius: 4px;
+    overflow: hidden;
+  }

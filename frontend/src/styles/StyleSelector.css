@@ -1,0 +1,25 @@
+.style-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .style-selector label {
+    font-weight: 500;
+    color: var(--dark-gray);
+  }
+  
+  .style-selector select {
+    padding: 10px;
+    border: 1px solid var(--medium-gray);
+    border-radius: 4px;
+    background-color: var(--white);
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  
+  .style-selector.loading {
+    padding: 10px;
+    color: var(--dark-gray);
+    font-style: italic;
+  }

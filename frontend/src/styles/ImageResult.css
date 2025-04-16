@@ -1,0 +1,70 @@
+.image-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    border: 1px solid var(--medium-gray);
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: var(--light-gray);
+  }
+  
+  .image-result.empty .placeholder {
+    text-align: center;
+    color: var(--dark-gray);
+    padding: 2rem;
+  }
+  
+  .image-result.processing .status-message {
+    text-align: center;
+    color: var(--dark-gray);
+    padding: 2rem;
+  }
+  
+  .info-text {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-top: 0.5rem;
+  }
+  
+  .image-result.completed {
+    padding: 0;
+    background-color: var(--white);
+  }
+  
+  .image-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .image-container img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px 4px 0 0;
+  }
+  
+  .image-controls {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    background-color: var(--white);
+    border-top: 1px solid var(--medium-gray);
+  }
+  
+  .download-button {
+    background-color: var(--primary-color);
+    color: var(--white);
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+  
+  .download-button:hover {
+    background-color: var(--primary-dark);
+  }

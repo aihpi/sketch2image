@@ -1,0 +1,43 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000/api
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app  # Add this to automatically see frontend changes
+      - /app/node_modules # Preserve node_modules
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DEVICE=cuda
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG_MODE=true
+      - MODEL_ID=lllyasviel/control_v11p_sd15_scribble
+      - NUM_INFERENCE_STEPS=20
+      - GUIDANCE_SCALE=7.5
+      - OUTPUT_IMAGE_SIZE=512
+      - FRONTEND_URL=http://localhost:3000
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/outputs:/app/outputs
+      - huggingface_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  huggingface_cache:
