@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
 class StyleOption(BaseModel):
@@ -6,6 +6,15 @@ class StyleOption(BaseModel):
     id: str
     name: str
     prompt_prefix: str
+
+class ModelOption(BaseModel):
+    """Model option for image generation"""
+    id: str
+    name: str
+    description: str
+    huggingface_id: str
+    inference_speed: str
+    recommended_for: List[str]
 
 class ImageResponse(BaseModel):
     """Response model for image generation"""

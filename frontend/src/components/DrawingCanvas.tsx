@@ -1,11 +1,13 @@
+// frontend/src/components/DrawingCanvas.tsx
 import React, { useRef, useEffect } from 'react';
 import { Excalidraw, exportToBlob } from '@excalidraw/excalidraw';
 import { toast } from 'react-toastify';
 import { generateImage } from '../services/api';
-import { Style, GenerationResult } from '../types';
+import { Style, Model, GenerationResult } from '../types';
 
 interface DrawingCanvasProps {
   selectedStyle: Style | null;
+  selectedModel: Model | null;
   description: string;
   setDescription: React.Dispatch<React.SetStateAction<string>>;
   setGenerationResult: React.Dispatch<React.SetStateAction<GenerationResult | null>>;
@@ -14,6 +16,7 @@ interface DrawingCanvasProps {
 
 const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   selectedStyle,
+  selectedModel,
   description,
   setDescription,
   setGenerationResult,
@@ -41,6 +44,11 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const handleGenerateImage = async () => {
     if (!selectedStyle) {
       toast.error('Please select a style first');
+      return;
+    }
+
+    if (!selectedModel) {
+      toast.error('Please select a model first');
       return;
     }
 
@@ -80,8 +88,13 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       // Convert blob to file
       const file = new File([blob], 'sketch.png', { type: 'image/png' });
 
+      // Show which model is being used
+      toast.info(`Using ${selectedModel.name} model for generation...`, {
+        autoClose: 2000
+      });
+
       // Send to API for processing
-      const result = await generateImage(file, selectedStyle.id, description);
+      const result = await generateImage(file, selectedStyle.id, selectedModel.id, description);
 
       // Set the generation result
       setGenerationResult(result);
@@ -141,7 +154,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <button 
           className="generate-button"
           onClick={handleGenerateImage}
-          disabled={!selectedStyle}
+          disabled={!selectedStyle || !selectedModel}
         >
           Generate Image
         </button>

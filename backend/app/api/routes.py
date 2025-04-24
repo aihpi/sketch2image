@@ -1,11 +1,12 @@
+# app/api/routes.py
 import os
 import uuid
 from typing import List
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import FileResponse
 from app.core.config import settings
-from app.services.generation import generate_image_from_sketch
-from app.models.image import ImageResponse, StyleOption
+from app.services.generation import generate_image_from_sketch, load_model_pipeline
+from app.models.image import ImageResponse, StyleOption, ModelOption
 
 router = APIRouter()
 
@@ -23,19 +24,47 @@ async def get_styles():
     """Get available style options for image generation"""
     return AVAILABLE_STYLES
 
+@router.get("/models", response_model=List[ModelOption])
+async def get_models():
+    """Get available model options for image generation"""
+    models = []
+    for model_id, model_data in settings.AVAILABLE_MODELS.items():
+        models.append(
+            ModelOption(
+                id=model_id,
+                name=model_data["name"],
+                description=f"Inference speed: {model_data['inference_speed']}",
+                huggingface_id=model_data["huggingface_id"],
+                inference_speed=model_data["inference_speed"],
+                recommended_for=model_data["recommended_for"]
+            )
+        )
+    return models
+
 @router.post("/generate", response_model=ImageResponse)
 async def generate_image(
     background_tasks: BackgroundTasks,
     sketch_file: UploadFile = File(...),
     style_id: str = Form(...),
+    model_id: str = Form(None),
     description: str = Form(None),
 ):
-    """Generate an image from a sketch with the specified style"""
+    """Generate an image from a sketch with the specified style and model"""
     
     # Validate style_id
     style = next((s for s in AVAILABLE_STYLES if s.id == style_id), None)
     if not style:
         raise HTTPException(status_code=400, detail=f"Invalid style ID: {style_id}")
+    
+    # Validate model_id or use default
+    if not model_id:
+        model_id = settings.DEFAULT_MODEL_ID
+    
+    if model_id not in settings.AVAILABLE_MODELS:
+        raise HTTPException(status_code=400, detail=f"Invalid model ID: {model_id}")
+    
+    # Get model info
+    model_info = settings.AVAILABLE_MODELS[model_id]
     
     # Generate a unique ID for this generation
     generation_id = str(uuid.uuid4())
@@ -66,6 +95,7 @@ async def generate_image(
             sketch_path=sketch_path,
             output_path=output_path,
             prompt=prompt,
+            model_id=model_id,
             negative_prompt="low quality, bad anatomy, worst quality, low resolution",
         )
         
@@ -73,7 +103,7 @@ async def generate_image(
         return ImageResponse(
             generation_id=generation_id,
             status="processing",
-            message="Image generation started. Check status endpoint for completion."
+            message=f"Image generation started using {model_info['name']}. Check status endpoint for completion."
         )
     
     except Exception as e:

@@ -1,5 +1,6 @@
+// frontend/src/services/api.ts
 import axios from 'axios';
-import { Style, GenerationResult } from '../types';
+import { Style, Model, GenerationResult } from '../types';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
@@ -25,11 +26,25 @@ export const fetchStyles = async (): Promise<Style[]> => {
 };
 
 /**
+ * Fetch available model options from the API
+ */
+export const fetchModels = async (): Promise<Model[]> => {
+  try {
+    const response = await api.get('/models');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching models:', error);
+    throw error;
+  }
+};
+
+/**
  * Upload a sketch and generate an image
  */
 export const generateImage = async (
   sketchFile: File,
   styleId: string,
+  modelId: string,
   description?: string
 ): Promise<GenerationResult> => {
   try {
@@ -37,6 +52,10 @@ export const generateImage = async (
     const formData = new FormData();
     formData.append('sketch_file', sketchFile);
     formData.append('style_id', styleId);
+    
+    if (modelId) {
+      formData.append('model_id', modelId);
+    }
     
     if (description) {
       formData.append('description', description);

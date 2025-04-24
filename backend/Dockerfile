@@ -30,15 +30,16 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir torch==1.13.1+cu117 torchvision==0.14.1+cu117 -f https://download.pytorch.org/whl/torch_stable.html
 
 # Install HuggingFace + Diffusers + Accelerate
-RUN pip install --no-cache-dir huggingface_hub==0.12.1 \
-    transformers==4.26.1 \
-    diffusers==0.14.0 \
-    accelerate==0.16.0
+RUN pip install --no-cache-dir huggingface_hub==0.30.2 \
+    transformers>=4.46.3 \
+    diffusers>=0.33.0 \
+    accelerate>=1.6.0
 
 # Install other requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install xformers==0.0.23
+RUN pip install hf_xet
 
 # Copy application code
 COPY . .

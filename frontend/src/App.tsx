@@ -6,37 +6,48 @@ import './styles/App.css';
 // Components
 import DrawingCanvas from './components/DrawingCanvas';
 import StyleSelector from './components/StyleSelector';
+import ModelSelector from './components/ModelSelector';
 import ImageResult from './components/ImageResult';
 import LoadingOverlay from './components/LoadingOverlay';
 
 // Services
-import { fetchStyles } from './services/api';
+import { fetchStyles, fetchModels } from './services/api';
 
 // Types
-import { Style, GenerationResult } from './types';
+import { Style, Model, GenerationResult } from './types';
 
 const App: React.FC = () => {
   const [styles, setStyles] = useState<Style[]>([]);
+  const [models, setModels] = useState<Model[]>([]);
   const [selectedStyle, setSelectedStyle] = useState<Style | null>(null);
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [description, setDescription] = useState<string>('');
   const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Fetch available styles on component mount
+  // Fetch available styles and models on component mount
   useEffect(() => {
-    const getStyles = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch styles
         const stylesData = await fetchStyles();
         setStyles(stylesData);
         if (stylesData.length > 0) {
           setSelectedStyle(stylesData[0]);
         }
+
+        // Fetch models
+        const modelsData = await fetchModels();
+        setModels(modelsData);
+        if (modelsData.length > 0) {
+          setSelectedModel(modelsData[0]);
+        }
       } catch (error) {
-        console.error('Failed to fetch styles:', error);
+        console.error('Failed to fetch initial data:', error);
       }
     };
 
-    getStyles();
+    fetchData();
   }, []);
 
   return (
@@ -53,12 +64,18 @@ const App: React.FC = () => {
           <h2>Your Sketch</h2>
           <DrawingCanvas 
             selectedStyle={selectedStyle}
+            selectedModel={selectedModel}
             description={description}
             setDescription={setDescription}
             setGenerationResult={setGenerationResult}
             setIsLoading={setIsLoading}
           />
           <div className="style-controls">
+            <ModelSelector 
+              models={models} 
+              selectedModel={selectedModel} 
+              setSelectedModel={setSelectedModel} 
+            />
             <StyleSelector 
               styles={styles} 
               selectedStyle={selectedStyle} 
@@ -86,7 +103,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {isLoading && <LoadingOverlay />}
+      {isLoading && <LoadingOverlay modelName={selectedModel?.name} />}
     </div>
   );
 };

@@ -1,0 +1,50 @@
+/* frontend/src/styles/ModelSelector.css */
+.model-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .model-selector label {
+    font-weight: 500;
+    color: var(--dark-gray);
+  }
+  
+  .model-selector select {
+    padding: 10px;
+    border: 1px solid var(--medium-gray);
+    border-radius: 4px;
+    background-color: var(--white);
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  
+  .model-selector.loading {
+    padding: 10px;
+    color: var(--dark-gray);
+    font-style: italic;
+  }
+  
+  .model-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--dark-gray);
+    padding: 0.5rem;
+    background-color: var(--light-gray);
+    border-radius: 4px;
+    margin-top: 0.5rem;
+  }
+  
+  .model-speed, .model-recommended {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  
+  .info-label {
+    font-weight: 600;
+    min-width: 60px;
+  }
