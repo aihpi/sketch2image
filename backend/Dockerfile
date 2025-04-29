@@ -15,6 +15,12 @@ RUN apt-get update && apt-get install -y \
     curl \
     git \
     ca-certificates \
+    # Add OpenCV dependencies
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libxext6 \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update && apt-get install -y python3.10 python3.10-venv python3.10-dev python3-pip \
     && rm -rf /var/lib/apt/lists/*
@@ -35,10 +41,21 @@ RUN pip install --no-cache-dir huggingface_hub==0.30.2 \
     diffusers>=0.33.0 \
     accelerate>=1.6.0
 
+# Install memory optimization libraries
+RUN pip install --no-cache-dir xformers==0.0.23
+
+# Install dependencies for specific models
+RUN pip install --no-cache-dir \
+    opencv-python-headless \
+    omegaconf \
+    invisible-watermark \
+    safetensors
+
 # Install other requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install xformers==0.0.23
+
+# Install HuggingFace XET for large file handling
 RUN pip install hf_xet
 
 # Copy application code

@@ -22,15 +22,18 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - DEBUG_MODE=true
-      - MODEL_ID=lllyasviel/control_v11p_sd15_scribble
+      - DEFAULT_MODEL_ID=controlnet_sd15_scribble
       - NUM_INFERENCE_STEPS=20
       - GUIDANCE_SCALE=7.5
       - OUTPUT_IMAGE_SIZE=512
       - FRONTEND_URL=http://localhost:3000
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}  # Add HuggingFace token from host env
     volumes:
+      - ./backend:/app  # Mount the entire backend directory for live changes
       - ./backend/uploads:/app/uploads
       - ./backend/outputs:/app/outputs
       - huggingface_cache:/root/.cache/huggingface
+      - model_weights:/app/model_weights  # Persistent storage for model weights
     deploy:
       resources:
         reservations:
@@ -41,3 +44,6 @@ services:
 
 volumes:
   huggingface_cache:
+    # Persistent volume to store downloaded models between restarts
+  model_weights:
+    # Persistent volume for model weights that can be shared between different containers
