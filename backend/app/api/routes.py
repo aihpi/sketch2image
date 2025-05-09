@@ -29,11 +29,20 @@ async def get_models():
     """Get available model options for image generation"""
     models = []
     for model_id, model_data in settings.AVAILABLE_MODELS.items():
+        # Include preprocessing info in the description
+        preprocess_info = ""
+        if model_data.get("preprocessing", {}).get("invert", False):
+            preprocess_info = " (Works best with black background, white lines)"
+        else:
+            preprocess_info = " (Works best with white background, black lines)"
+            
+        description = f"Inference speed: {model_data['inference_speed']}{preprocess_info}"
+        
         models.append(
             ModelOption(
                 id=model_id,
                 name=model_data["name"],
-                description=f"Inference speed: {model_data['inference_speed']}",
+                description=description,
                 huggingface_id=model_data["huggingface_id"],
                 inference_speed=model_data["inference_speed"],
                 recommended_for=model_data["recommended_for"]
@@ -89,6 +98,10 @@ async def generate_image(
         else:
             prompt += " a scene"  # Generic fallback
         
+        # Use model's default negative prompt if available
+        negative_prompt = model_info.get("config", {}).get("default_negative_prompt", 
+                                                        "low quality, bad anatomy, worst quality, low resolution")
+        
         # Generate the image (this will run in the background)
         background_tasks.add_task(
             generate_image_from_sketch,
@@ -96,7 +109,7 @@ async def generate_image(
             output_path=output_path,
             prompt=prompt,
             model_id=model_id,
-            negative_prompt="low quality, bad anatomy, worst quality, low resolution",
+            negative_prompt=negative_prompt,
         )
         
         # Return response with generation ID

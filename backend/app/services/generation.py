@@ -1,11 +1,12 @@
 import os
 import torch
-from PIL import Image
+from PIL import Image, ImageOps
+import numpy as np
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, StableDiffusionXLControlNetPipeline
-from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, AutoPipelineForImage2Image
+from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter
 from diffusers import EulerAncestralDiscreteScheduler, AutoencoderKL
 from diffusers.utils import load_image
-import numpy as np
+import torchvision.transforms as T
 from app.core.config import settings
 
 # Cache for loaded models
@@ -37,7 +38,13 @@ def get_pidinet_processor():
     
     return pidinet_processor
 
-def preprocess_with_pidinet(image, detect_resolution=None, image_resolution=None, apply_filter=None):
+def normalize_sketch(sketch):
+    """Normalize sketch to have proper contrast and detail"""
+    sketch = sketch.convert("L")  # Convert to grayscale
+    tensor = T.ToTensor()(sketch)
+    return T.ToPILImage()(tensor)
+
+def preprocess_with_pidinet(image, detect_resolution=None, image_resolution=None, apply_filter=None, invert=False):
     """
     Preprocess an image using PidiNet to create a sketch-like format
     """
@@ -47,8 +54,8 @@ def preprocess_with_pidinet(image, detect_resolution=None, image_resolution=None
         if processor is None:
             print("PidiNet processor not available, returning original image")
             if isinstance(image, str):
-                return Image.open(image)
-            return image
+                return Image.open(image).convert("L")
+            return image.convert("L")
         
         # If image is a path, load it
         if isinstance(image, str):
@@ -70,12 +77,23 @@ def preprocess_with_pidinet(image, detect_resolution=None, image_resolution=None
             apply_filter=apply_filter
         ).convert("L")
         
+        # Invert if needed
+        if invert:
+            processed_image = ImageOps.invert(processed_image)
+            
         return processed_image
     except Exception as e:
         print(f"Error preprocessing image with PidiNet: {str(e)}")
         # Fall back to original image
         if isinstance(image, str):
-            return Image.open(image)
+            image = Image.open(image).convert("L")
+        else:
+            image = image.convert("L")
+            
+        # Invert if needed
+        if invert:
+            image = ImageOps.invert(image)
+            
         return image
 
 def load_model_pipeline(model_id):
@@ -109,7 +127,7 @@ def load_model_pipeline(model_id):
         print(f"Loading model: {model_id} ({huggingface_id})")
         
         # Different loading logic based on model type
-        if model_id == "controlnet_sd15_scribble":
+        if model_id in ["controlnet_sd15_scribble", "controlnet_sd15_softedge"]:
             # Stable Diffusion 1.5 + ControlNet
             controlnet = ControlNetModel.from_pretrained(
                 huggingface_id,
@@ -136,7 +154,7 @@ def load_model_pipeline(model_id):
             )
             
         elif model_id == "t2i_adapter_sdxl":
-            # Stable Diffusion XL + T2I-Adapter - Exactly like in the tutorial
+            # Stable Diffusion XL + T2I-Adapter
             
             # 1. Load the T2I adapter
             adapter = T2IAdapter.from_pretrained(
@@ -180,13 +198,6 @@ def load_model_pipeline(model_id):
                 model_info["base_model"],
                 **kwargs
             )
-            
-        elif model_id == "pix2pix_turbo":
-            # Pix2Pix-Turbo model - uses different parameters
-            pipeline = AutoPipelineForImage2Image.from_pretrained(
-                huggingface_id,
-                torch_dtype=torch_dtype
-            )
         
         # Move to device (GPU if available)
         pipeline = pipeline.to(device)
@@ -219,63 +230,64 @@ def load_model_pipeline(model_id):
         print(f"Error loading model {model_id}: {str(e)}")
         raise e
 
-def preprocess_sketch(sketch_path):
-    """Preprocess the sketch to match the expected format for the model"""
-    # Check if we should use PidiNet preprocessing
-    if settings.USE_PIDINET_PREPROCESSING:
-        print("Using PidiNet for sketch preprocessing")
-        # Create a path for the preprocessed image
-        sketch_filename = os.path.basename(sketch_path)
-        preprocessed_path = os.path.join(settings.PREPROCESSED_DIR, f"pidinet_{sketch_filename}")
-        
-        # Load the original image
-        original_image = Image.open(sketch_path)
-        
-        # Preprocess the image with PidiNet
-        processed_image = preprocess_with_pidinet(original_image)
-        
-        # Save the preprocessed image for debugging/reference
-        processed_image.save(preprocessed_path)
-        print(f"Saved preprocessed PidiNet sketch to {preprocessed_path}")
-        
-        # Ensure the image has the right size
-        processed_image = processed_image.resize((settings.OUTPUT_IMAGE_SIZE, settings.OUTPUT_IMAGE_SIZE))
-        
-        return processed_image
+def preprocess_sketch(sketch_path, model_id):
+    """
+    Preprocess the sketch to match the expected format for the specific model
+    Each model may have different preprocessing requirements
+    """
+    # Get the model info and preprocessing settings
+    if model_id not in settings.AVAILABLE_MODELS:
+        raise ValueError(f"Unknown model ID: {model_id}")
     
-    # If not using PidiNet, use the original preprocessing
-    # Load the sketch image
-    image = load_image(sketch_path)
+    model_info = settings.AVAILABLE_MODELS[model_id]
+    preprocessing = model_info.get("preprocessing", {})
     
-    # Ensure the image has the right size
-    image = image.resize((settings.OUTPUT_IMAGE_SIZE, settings.OUTPUT_IMAGE_SIZE))
+    # Determine preprocessing type
+    preprocess_type = preprocessing.get("type", "scribble")
+    invert = preprocessing.get("invert", False)
+    normalize = preprocessing.get("normalize", True)
     
-    # Convert to numpy array for processing
-    image_np = np.array(image)
+    # Create a path for the preprocessed image
+    sketch_filename = os.path.basename(sketch_path)
+    preprocessed_path = os.path.join(settings.PREPROCESSED_DIR, f"{model_id}_{sketch_filename}")
     
-    # If the image has an alpha channel, composite it on a white background
-    if len(image_np.shape) == 3 and image_np.shape[2] == 4:
-        # Create a white background
-        white_background = np.ones((image_np.shape[0], image_np.shape[1], 3), dtype=np.uint8) * 255
+    # Load the original image
+    original_image = Image.open(sketch_path)
+    
+    # Process based on type
+    if preprocess_type == "pidinet" and settings.USE_PIDINET_PREPROCESSING:
+        print(f"Using PidiNet for sketch preprocessing with model {model_id}")
+        processed_image = preprocess_with_pidinet(
+            original_image,
+            invert=invert
+        )
+    else:
+        # Basic scribble processing
+        print(f"Using basic scribble preprocessing for model {model_id}")
+        processed_image = original_image.convert("L")
         
-        # Extract RGB and alpha channels
-        rgb = image_np[:, :, :3]
-        alpha = image_np[:, :, 3:4] / 255.0
-        
-        # Composite RGB over white background using alpha
-        image_np = rgb * alpha + white_background * (1 - alpha)
-        image_np = image_np.astype(np.uint8)
+        # Invert if needed (some models expect black background with white lines)
+        if invert:
+            processed_image = ImageOps.invert(processed_image)
     
-    # Convert back to PIL Image
-    image = Image.fromarray(image_np)
+    # Normalize if requested
+    if normalize:
+        processed_image = normalize_sketch(processed_image)
     
-    return image
+    # Resize to the expected output size
+    processed_image = processed_image.resize((settings.OUTPUT_IMAGE_SIZE, settings.OUTPUT_IMAGE_SIZE))
+    
+    # Save the preprocessed image for debugging/reference
+    processed_image.save(preprocessed_path)
+    print(f"Saved preprocessed sketch for {model_id} to {preprocessed_path}")
+    
+    return processed_image
 
 async def generate_image_from_sketch(
     sketch_path, 
     output_path, 
     prompt, 
-    model_id="t2i_adapter_sdxl",  # Default to T2I adapter
+    model_id="t2i_adapter_sdxl",
     negative_prompt=""
 ):
     """Generate an image from a sketch using the selected model"""
@@ -283,13 +295,12 @@ async def generate_image_from_sketch(
         # Load the selected model pipeline
         pipe = load_model_pipeline(model_id)
         
-        # Preprocess the sketch
-        sketch_image = preprocess_sketch(sketch_path)
+        # Preprocess the sketch for the specific model
+        sketch_image = preprocess_sketch(sketch_path, model_id)
         
         # Get model configuration
         model_info = settings.AVAILABLE_MODELS[model_id]
         config = model_info.get("config", {})
-        model_type = model_info.get("model_type", "")
         
         # Use default negative prompt if not provided and available in config
         if not negative_prompt and "default_negative_prompt" in config:
@@ -311,14 +322,8 @@ async def generate_image_from_sketch(
         
         # Add model-specific parameters 
         if model_id == "t2i_adapter_sdxl":
-            # Exactly match tutorial parameters
             params["adapter_conditioning_scale"] = config.get("adapter_conditioning_scale", 0.9)
             params["adapter_conditioning_factor"] = config.get("adapter_conditioning_factor", 0.9)
-            
-        elif model_id == "pix2pix_turbo":
-            # Pix2Pix-Turbo model - uses different parameters
-            params["strength"] = config.get("strength", 0.8)
-            params["num_inference_steps"] = 1  # Always 1 for pix2pix_turbo
         
         print(f"Generating with model {model_id} using parameters: {params}")
         

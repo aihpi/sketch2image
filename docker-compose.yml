@@ -9,7 +9,7 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./frontend:/app  # Add this to automatically see frontend changes
+      - ./frontend:/app  # For automatic frontend changes
       - /app/node_modules # Preserve node_modules
 
   backend:
@@ -22,17 +22,17 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - DEBUG_MODE=true
-      - DEFAULT_MODEL_ID=t2i_adapter_sdxl  # Set default model to T2I Adapter
-      - NUM_INFERENCE_STEPS=40  # Use 40 steps like in tutorial
+      - DEFAULT_MODEL_ID=t2i_adapter_sdxl  # Default to T2I Adapter
+      - NUM_INFERENCE_STEPS=40  # 40 steps for higher quality
       - GUIDANCE_SCALE=7.5
       - OUTPUT_IMAGE_SIZE=512
       - FRONTEND_URL=http://localhost:3000
       - USE_PIDINET_PREPROCESSING=true  # Enable PidiNet preprocessing
     volumes:
-      - ./backend:/app  # Mount backend dir for live code changes
+      - ./backend:/app  # For live code changes
       - ./backend/uploads:/app/uploads
       - ./backend/outputs:/app/outputs
-      - ./backend/preprocessed:/app/preprocessed  # Add preprocessed dir for debugging
+      - ./backend/preprocessed:/app/preprocessed  # For debugging preprocessed images
       - huggingface_cache:/root/.cache/huggingface
     deploy:
       resources:

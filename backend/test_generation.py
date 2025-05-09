@@ -8,8 +8,9 @@ import os
 import sys
 import argparse
 from PIL import Image
+import matplotlib.pyplot as plt
 import torch
-from app.services.generation import get_pipeline, preprocess_sketch
+from app.services.generation import preprocess_sketch, load_model_pipeline
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Test sketch-to-image generation")
@@ -24,6 +25,13 @@ def parse_args():
         type=str, 
         default="test_output.png",
         help="Path to save the generated image"
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        choices=["controlnet_sd15_scribble", "controlnet_sd15_softedge", "controlnet_sdxl_scribble", "t2i_adapter_sdxl"],
+        default="t2i_adapter_sdxl",
+        help="Model to use for image generation"
     )
     parser.add_argument(
         "--style", 
@@ -41,7 +49,7 @@ def parse_args():
     parser.add_argument(
         "--steps", 
         type=int, 
-        default=20,
+        default=40,
         help="Number of inference steps"
     )
     parser.add_argument(
@@ -76,26 +84,42 @@ def main():
     else:
         prompt = f"{prompt_prefix} a scene"
     
+    print(f"Using model: {args.model}")
     print(f"Using prompt: '{prompt}'")
     
     try:
         # Get the pipeline
         print("Loading model pipeline...")
-        pipe = get_pipeline()
+        pipe = load_model_pipeline(args.model)
         
         # Preprocess the sketch
         print("Preprocessing sketch...")
-        sketch_image = preprocess_sketch(args.sketch)
+        sketch_image = preprocess_sketch(args.sketch, args.model)
+        
+        # Set model-specific parameters
+        params = {
+            "prompt": prompt,
+            "negative_prompt": "low quality, bad anatomy, worst quality, low resolution",
+            "image": sketch_image,
+            "num_inference_steps": args.steps,
+            "guidance_scale": args.guidance,
+        }
+        
+        # Add model-specific parameters
+        if args.model == "t2i_adapter_sdxl":
+            params["adapter_conditioning_scale"] = 0.9
+            params["adapter_conditioning_factor"] = 0.9
         
         # Generate the image
         print(f"Generating image with {args.steps} steps and guidance {args.guidance}...")
-        output_image = pipe(
-            prompt=prompt,
-            negative_prompt="low quality, bad anatomy, worst quality, low resolution",
-            image=sketch_image,
-            num_inference_steps=args.steps,
-            guidance_scale=args.guidance,
-        ).images[0]
+        output = pipe(**params)
+        
+        # Get the output image
+        if hasattr(output, "images") and len(output.images) > 0:
+            output_image = output.images[0]
+        else:
+            # Fallback in case the output format changes
+            output_image = output[0] if isinstance(output, (list, tuple)) else output
         
         # Save the output image
         output_image.save(args.output)
@@ -103,12 +127,10 @@ def main():
         
         # Display the images if possible
         try:
-            import matplotlib.pyplot as plt
-            
             plt.figure(figsize=(12, 6))
             plt.subplot(1, 2, 1)
-            plt.imshow(sketch_image)
-            plt.title("Input Sketch")
+            plt.imshow(sketch_image, cmap='gray')
+            plt.title("Preprocessed Sketch")
             plt.axis("off")
             
             plt.subplot(1, 2, 2)
@@ -124,6 +146,8 @@ def main():
             
     except Exception as e:
         print(f"Error during generation: {str(e)}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":
