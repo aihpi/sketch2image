@@ -33,30 +33,28 @@ RUN update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
 RUN pip install --upgrade pip
 
 # Install PyTorch + CUDA-compatible packages
-RUN pip install --no-cache-dir torch==1.13.1+cu117 torchvision==0.14.1+cu117 -f https://download.pytorch.org/whl/torch_stable.html
+# Upgraded PyTorch to 2.0.0 which has better compatibility with newer diffusers
+RUN pip install --no-cache-dir torch==2.0.0+cu117 torchvision==0.15.0+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
 
-# Install HuggingFace + Diffusers + Accelerate
-RUN pip install --no-cache-dir huggingface_hub==0.30.2 \
-    transformers>=4.46.3 \
-    diffusers>=0.33.0 \
-    accelerate>=1.6.0
+# Install specific versions of HuggingFace packages for better compatibility
+RUN pip install --no-cache-dir \
+    huggingface_hub==0.19.4 \
+    transformers==4.35.2 \
+    diffusers==0.23.1 \
+    accelerate==0.23.0
 
 # Install memory optimization libraries
-RUN pip install --no-cache-dir xformers==0.0.23
+RUN pip install --no-cache-dir xformers==0.0.22.post7
 
 # Install dependencies for specific models
 RUN pip install --no-cache-dir \
     opencv-python-headless \
-    omegaconf \
-    invisible-watermark \
-    safetensors
+    controlnet-aux==0.0.7 \
+    safetensors==0.3.2
 
 # Install other requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Install HuggingFace XET for large file handling
-RUN pip install hf_xet
 
 # Copy application code
 COPY . .

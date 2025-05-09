@@ -27,8 +27,10 @@ logs
 # Docker volumes and data
 backend/uploads/*
 backend/outputs/*
+backend/preprocessed/*
 !backend/uploads/.gitkeep
 !backend/outputs/.gitkeep
+!backend/preprocessed/.gitkeep
 
 # Python
 __pycache__/

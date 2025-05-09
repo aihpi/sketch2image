@@ -1,45 +1,82 @@
 import os
 import torch
 from PIL import Image
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, StableDiffusionXLControlNetPipeline
+from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, AutoPipelineForImage2Image
+from diffusers import EulerAncestralDiscreteScheduler, AutoencoderKL
+from diffusers.utils import load_image
 import numpy as np
-import importlib
 from app.core.config import settings
 
 # Cache for loaded models
 model_cache = {}
+# Cache for PidiNet processor
+pidinet_processor = None
 
-def get_huggingface_token():
-    """Get Hugging Face token from environment variable or settings"""
-    # First check environment variable
-    token = os.environ.get("HUGGINGFACE_TOKEN", None)
+def get_pidinet_processor():
+    """Get or initialize the PidiNet processor for sketch preprocessing"""
+    global pidinet_processor
     
-    # Then fallback to settings if available
-    if token is None and hasattr(settings, "HUGGINGFACE_TOKEN"):
-        token = settings.HUGGINGFACE_TOKEN
-        
-    return token
-
-def get_class_from_name(class_name):
-    """Dynamically import and return a class from diffusers based on its name"""
-    try:
-        module = importlib.import_module('diffusers')
-        return getattr(module, class_name)
-    except (ImportError, AttributeError) as e:
-        # If not found in main diffusers module, try specific submodules
+    if pidinet_processor is None:
         try:
-            # Try pipelines module
-            module = importlib.import_module('diffusers.pipelines')
-            return getattr(module, class_name)
-        except (ImportError, AttributeError):
-            # As a fallback, try other common modules
-            for submodule in ['models', 'schedulers', 'utils']:
-                try:
-                    module = importlib.import_module(f'diffusers.{submodule}')
-                    return getattr(module, class_name)
-                except (ImportError, AttributeError):
-                    pass
-            # If we get here, we couldn't find the class
-            raise ValueError(f"Could not find class {class_name} in diffusers package: {str(e)}")
+            from controlnet_aux.pidi import PidiNetDetector
+            
+            # Initialize the processor
+            processor = PidiNetDetector.from_pretrained("lllyasviel/Annotators")
+            
+            # Move to GPU if available
+            if torch.cuda.is_available():
+                processor = processor.to("cuda")
+                
+            pidinet_processor = processor
+            print("PidiNet processor initialized successfully")
+        except Exception as e:
+            print(f"Error initializing PidiNet processor: {str(e)}")
+            # Return None to indicate failure
+            return None
+    
+    return pidinet_processor
+
+def preprocess_with_pidinet(image, detect_resolution=None, image_resolution=None, apply_filter=None):
+    """
+    Preprocess an image using PidiNet to create a sketch-like format
+    """
+    try:
+        # Get the PidiNet processor
+        processor = get_pidinet_processor()
+        if processor is None:
+            print("PidiNet processor not available, returning original image")
+            if isinstance(image, str):
+                return Image.open(image)
+            return image
+        
+        # If image is a path, load it
+        if isinstance(image, str):
+            image = Image.open(image)
+        
+        # Set default parameters from settings if not provided
+        if detect_resolution is None:
+            detect_resolution = settings.PIDINET_DETECT_RESOLUTION
+        if image_resolution is None:
+            image_resolution = settings.PIDINET_IMAGE_RESOLUTION
+        if apply_filter is None:
+            apply_filter = settings.PIDINET_APPLY_FILTER
+        
+        # Process image
+        processed_image = processor(
+            image,
+            detect_resolution=detect_resolution,
+            image_resolution=image_resolution,
+            apply_filter=apply_filter
+        ).convert("L")
+        
+        return processed_image
+    except Exception as e:
+        print(f"Error preprocessing image with PidiNet: {str(e)}")
+        # Fall back to original image
+        if isinstance(image, str):
+            return Image.open(image)
+        return image
 
 def load_model_pipeline(model_id):
     """Load and cache model pipeline based on the model ID"""
@@ -70,154 +107,86 @@ def load_model_pipeline(model_id):
     
     try:
         print(f"Loading model: {model_id} ({huggingface_id})")
-        config = model_info.get("config", {})
         
-        # Check if this model requires authentication
-        requires_auth = config.get("requires_auth", False)
-        token = get_huggingface_token() if requires_auth else None
-        
-        if requires_auth and token is None:
-            raise ValueError(
-                f"Model {model_id} requires Hugging Face authentication, but no token was provided. "
-                "Please set the HUGGINGFACE_TOKEN environment variable or add it to your config."
-            )
-        
-        # Special case for Kandinsky model
-        if model_id == "kandinsky":
-            # Kandinsky needs special handling as it's not structured like other models
-            from diffusers import KandinskyPipeline, KandinskyPriorPipeline
-            
-            # The Kandinsky model requires a different loading approach
-            # First, load the prior pipeline
-            prior = KandinskyPriorPipeline.from_pretrained(
-                model_info["prior_model_id"],
-                torch_dtype=torch_dtype,
-                use_auth_token=token
-            ).to(device)
-            
-            # Then load the image pipeline
-            pipeline = KandinskyPipeline.from_pretrained(
+        # Different loading logic based on model type
+        if model_id == "controlnet_sd15_scribble":
+            # Stable Diffusion 1.5 + ControlNet
+            controlnet = ControlNetModel.from_pretrained(
                 huggingface_id,
-                torch_dtype=torch_dtype,
-                use_auth_token=token
-            ).to(device)
+                torch_dtype=torch_dtype
+            )
             
-            # Store the prior pipeline for later use
-            pipeline.prior_pipeline = prior
-        else:
-            # Get the pipeline and model classes
-            pipeline_class_name = config.get("pipeline_type")
-            model_class_name = config.get("model_type")
+            pipeline = StableDiffusionControlNetPipeline.from_pretrained(
+                "runwayml/stable-diffusion-v1-5",
+                controlnet=controlnet,
+                torch_dtype=torch_dtype
+            )
             
-            if not pipeline_class_name:
-                raise ValueError(f"Pipeline type not specified for model {model_id}")
+        elif model_id == "controlnet_sdxl_scribble":
+            # Stable Diffusion XL + ControlNet
+            controlnet = ControlNetModel.from_pretrained(
+                huggingface_id,
+                torch_dtype=torch_dtype
+            )
             
-            # Dynamically import the classes
-            PipelineClass = get_class_from_name(pipeline_class_name)
+            pipeline = StableDiffusionXLControlNetPipeline.from_pretrained(
+                "stabilityai/stable-diffusion-xl-base-1.0",
+                controlnet=controlnet,
+                torch_dtype=torch_dtype
+            )
             
-            # Special handling for different model types
-            if model_class_name == "T2IAdapter":
-                # For T2I Adapter models
-                ModelClass = get_class_from_name(model_class_name)
-                
-                # Get additional parameters
-                adapter_type = config.get("adapter_type", "full_adapter_xl")
-                
-                # Load the component model
-                model_component = ModelClass.from_pretrained(
-                    huggingface_id,
-                    torch_dtype=torch_dtype,
-                    adapter_type=adapter_type,  # Add adapter_type parameter
-                    use_auth_token=token
+        elif model_id == "t2i_adapter_sdxl":
+            # Stable Diffusion XL + T2I-Adapter - Exactly like in the tutorial
+            
+            # 1. Load the T2I adapter
+            adapter = T2IAdapter.from_pretrained(
+                huggingface_id,
+                subfolder=model_info.get("sub_folder", ""),
+                torch_dtype=torch_dtype
+            )
+            
+            # 2. Load the VAE if specified
+            vae = None
+            if "vae_model" in model_info:
+                vae = AutoencoderKL.from_pretrained(
+                    model_info["vae_model"],
+                    torch_dtype=torch_dtype
                 )
-                
-                # Load VAE if specified
-                vae = None
-                if "vae_model" in model_info:
-                    from diffusers import AutoencoderKL
-                    vae = AutoencoderKL.from_pretrained(
-                        model_info["vae_model"],
-                        torch_dtype=torch_dtype,
-                        use_auth_token=token
-                    )
-                
-                # Load scheduler
-                scheduler = None
-                if config.get("custom_scheduler", False):
-                    from diffusers import EulerAncestralDiscreteScheduler
-                    scheduler = EulerAncestralDiscreteScheduler.from_pretrained(
-                        model_info["base_model"],
-                        subfolder="scheduler"
-                    )
-                
-                # Load the base model with the component
-                base_model = model_info.get("base_model", "")
-                if not base_model:
-                    raise ValueError(f"Base model not specified for model {model_id}")
-                
-                # Create the keyword arguments dictionary with the correct parameters
-                kwargs = {
-                    "adapter": model_component,
-                    "torch_dtype": torch_dtype
-                }
-                
-                # Add optional components if available
-                if vae is not None:
-                    kwargs["vae"] = vae
-                if scheduler is not None:
-                    kwargs["scheduler"] = scheduler
-                
-                # Add auth token if needed
-                if token:
-                    kwargs["use_auth_token"] = token
-                
-                # For SDXL models, add the variant parameter
-                if "sdxl" in base_model.lower():
-                    kwargs["variant"] = "fp16"
-                
-                # Load the pipeline with the properly named parameters
-                pipeline = PipelineClass.from_pretrained(
-                    base_model,
-                    **kwargs
+            
+            # 3. Load the custom scheduler if specified
+            scheduler = None
+            if model_info.get("config", {}).get("custom_scheduler", False):
+                scheduler = EulerAncestralDiscreteScheduler.from_pretrained(
+                    model_info["base_model"],
+                    subfolder="scheduler"
                 )
-            elif model_class_name == "ControlNetModel":
-                # For ControlNet models
-                ModelClass = get_class_from_name(model_class_name)
+            
+            # 4. Set up the pipeline with all components
+            kwargs = {
+                "adapter": adapter,
+                "torch_dtype": torch_dtype
+            }
+            
+            if vae is not None:
+                kwargs["vae"] = vae
                 
-                # Load the component model
-                model_component = ModelClass.from_pretrained(
-                    huggingface_id,
-                    torch_dtype=torch_dtype,
-                    use_auth_token=token
-                )
+            if scheduler is not None:
+                kwargs["scheduler"] = scheduler
                 
-                # Load the base model with the component
-                base_model = model_info.get("base_model", "")
-                if not base_model:
-                    raise ValueError(f"Base model not specified for model {model_id}")
-                
-                # Create the keyword arguments dictionary with the correct parameter name
-                kwargs = {
-                    "controlnet": model_component,  # Use "controlnet" for ControlNetModel
-                    "torch_dtype": torch_dtype
-                }
-                
-                # Add auth token if needed
-                if token:
-                    kwargs["use_auth_token"] = token
-                
-                # Load the pipeline with the properly named parameter
-                pipeline = PipelineClass.from_pretrained(
-                    base_model,
-                    **kwargs
-                )
-            else:
-                # For models that don't need separate components (like AutoPipeline)
-                pipeline = PipelineClass.from_pretrained(
-                    huggingface_id,
-                    torch_dtype=torch_dtype,
-                    use_auth_token=token
-                )
+            if "sdxl" in model_info.get("base_model", "").lower():
+                kwargs["variant"] = "fp16" if device == "cuda" else None
+            
+            pipeline = StableDiffusionXLAdapterPipeline.from_pretrained(
+                model_info["base_model"],
+                **kwargs
+            )
+            
+        elif model_id == "pix2pix_turbo":
+            # Pix2Pix-Turbo model - uses different parameters
+            pipeline = AutoPipelineForImage2Image.from_pretrained(
+                huggingface_id,
+                torch_dtype=torch_dtype
+            )
         
         # Move to device (GPU if available)
         pipeline = pipeline.to(device)
@@ -225,17 +194,20 @@ def load_model_pipeline(model_id):
         # Optimize memory usage for GPU
         if device == "cuda":
             try:
-                # Try to enable xformers first if the model supports it
+                # Try to enable xformers first
                 if hasattr(pipeline, "enable_xformers_memory_efficient_attention"):
                     pipeline.enable_xformers_memory_efficient_attention()
                     print("Enabled xformers memory efficient attention")
                 else:
-                    # Fall back to attention slicing if xformers not supported
-                    if hasattr(pipeline, "enable_attention_slicing"):
-                        pipeline.enable_attention_slicing()
-                        print("Enabled attention slicing")
+                    # Fall back to attention slicing if xformers fails
+                    pipeline.enable_attention_slicing()
+                    print("Enabled attention slicing")
             except Exception as e:
                 print(f"Warning: Could not optimize memory usage: {str(e)}")
+                # Still enable attention slicing as fallback
+                if hasattr(pipeline, "enable_attention_slicing"):
+                    pipeline.enable_attention_slicing()
+                    print("Enabled attention slicing")
         
         # Cache the pipeline
         model_cache[model_id] = pipeline
@@ -249,8 +221,29 @@ def load_model_pipeline(model_id):
 
 def preprocess_sketch(sketch_path):
     """Preprocess the sketch to match the expected format for the model"""
-    from diffusers.utils import load_image
+    # Check if we should use PidiNet preprocessing
+    if settings.USE_PIDINET_PREPROCESSING:
+        print("Using PidiNet for sketch preprocessing")
+        # Create a path for the preprocessed image
+        sketch_filename = os.path.basename(sketch_path)
+        preprocessed_path = os.path.join(settings.PREPROCESSED_DIR, f"pidinet_{sketch_filename}")
+        
+        # Load the original image
+        original_image = Image.open(sketch_path)
+        
+        # Preprocess the image with PidiNet
+        processed_image = preprocess_with_pidinet(original_image)
+        
+        # Save the preprocessed image for debugging/reference
+        processed_image.save(preprocessed_path)
+        print(f"Saved preprocessed PidiNet sketch to {preprocessed_path}")
+        
+        # Ensure the image has the right size
+        processed_image = processed_image.resize((settings.OUTPUT_IMAGE_SIZE, settings.OUTPUT_IMAGE_SIZE))
+        
+        return processed_image
     
+    # If not using PidiNet, use the original preprocessing
     # Load the sketch image
     image = load_image(sketch_path)
     
@@ -282,7 +275,7 @@ async def generate_image_from_sketch(
     sketch_path, 
     output_path, 
     prompt, 
-    model_id="controlnet_sd15_scribble", 
+    model_id="t2i_adapter_sdxl",  # Default to T2I adapter
     negative_prompt=""
 ):
     """Generate an image from a sketch using the selected model"""
@@ -298,76 +291,34 @@ async def generate_image_from_sketch(
         config = model_info.get("config", {})
         model_type = model_info.get("model_type", "")
         
+        # Use default negative prompt if not provided and available in config
+        if not negative_prompt and "default_negative_prompt" in config:
+            negative_prompt = config["default_negative_prompt"]
+        
         # Prepare common parameters
         params = {
             "prompt": prompt,
-            "negative_prompt": negative_prompt or "disfigured, extra digit, fewer digits, cropped, worst quality, low quality",
+            "negative_prompt": negative_prompt,
             "image": sketch_image,
         }
         
-        # Set model-specific parameters from config
-        if "num_inference_steps" not in config:
-            params["num_inference_steps"] = settings.NUM_INFERENCE_STEPS
-            
-        if "guidance_scale" not in config:
-            params["guidance_scale"] = settings.GUIDANCE_SCALE
-            
-        # Add any model-specific parameters from config
-        for key, value in config.items():
-            if key not in ["pipeline_type", "model_type", "needs_safety_checker", "requires_auth", "custom_scheduler", "adapter_type"]:
-                params[key] = value
-                
-        # Special handling for Kandinsky model
-        if model_type == "kandinsky" and hasattr(pipe, "prior_pipeline"):
-            print("Using Kandinsky model with prior")
-            # Generate image embeddings from the prompt
-            prior_output = pipe.prior_pipeline(
-                prompt,
-                guidance_scale=config.get("prior_guidance_scale", 4.0)
-            )
-            
-            # Kandinsky uses different parameter names
-            kandinsky_params = {
-                "image_embeds": prior_output.image_embeds,
-                "negative_image_embeds": prior_output.negative_image_embeds,
-                "image": sketch_image,
-                "height": settings.OUTPUT_IMAGE_SIZE,
-                "width": settings.OUTPUT_IMAGE_SIZE,
-                "guidance_scale": config.get("guidance_scale", settings.GUIDANCE_SCALE),
-                "num_inference_steps": config.get("num_inference_steps", settings.NUM_INFERENCE_STEPS)
-            }
-            
-            # Replace params with kandinsky-specific ones
-            params = kandinsky_params
+        # Get specific parameters from config
+        num_inference_steps = config.get("num_inference_steps", settings.NUM_INFERENCE_STEPS)
+        guidance_scale = config.get("guidance_scale", settings.GUIDANCE_SCALE)
         
-        # Special handling for ControlNet vs T2I Adapter models
-        elif model_type in ["controlnet_sd15", "controlnet_sdxl"]:
-            # ControlNet models may need specific parameters
-            pass  # Already handled by the common parameters
+        params["num_inference_steps"] = num_inference_steps
+        params["guidance_scale"] = guidance_scale
+        
+        # Add model-specific parameters 
+        if model_id == "t2i_adapter_sdxl":
+            # Exactly match tutorial parameters
+            params["adapter_conditioning_scale"] = config.get("adapter_conditioning_scale", 0.9)
+            params["adapter_conditioning_factor"] = config.get("adapter_conditioning_factor", 0.9)
             
-        elif model_type == "t2i_adapter":
-            # T2I adapter models need specific parameters
-            if "adapter_conditioning_scale" not in params:
-                params["adapter_conditioning_scale"] = config.get("adapter_conditioning_scale", 1.0)
-            if "adapter_conditioning_factor" not in params:
-                params["adapter_conditioning_factor"] = config.get("adapter_conditioning_factor", 1.0)
-                
-        elif model_type == "pix2pix":
-            # Pix2Pix models might need strength parameter
-            if "strength" not in params:
-                params["strength"] = 0.8
-            # Also might use fewer steps
-            if params.get("num_inference_steps", 0) > 1:
-                params["num_inference_steps"] = 1
-                
-        # Handling for standard Stable Diffusion models
-        elif model_type == "stable_diffusion":
-            # Use img2img pipeline if we have a sketch
-            if hasattr(pipe, "img2img") and sketch_image is not None:
-                # If this is a standard SD pipeline with img2img capability
-                params["strength"] = 0.8  # Controls how much to respect the original image
-                if hasattr(pipe, "img2img"):
-                    pipe = pipe.img2img
+        elif model_id == "pix2pix_turbo":
+            # Pix2Pix-Turbo model - uses different parameters
+            params["strength"] = config.get("strength", 0.8)
+            params["num_inference_steps"] = 1  # Always 1 for pix2pix_turbo
         
         print(f"Generating with model {model_id} using parameters: {params}")
         
