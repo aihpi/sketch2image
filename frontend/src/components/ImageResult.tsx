@@ -1,5 +1,5 @@
+// frontend/src/components/ImageResult.tsx
 import React, { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
 import { GenerationResult } from '../types';
 import { checkGenerationStatus } from '../services/api';
 import '../styles/ImageResult.css';
@@ -55,14 +55,13 @@ const ImageResult: React.FC<ImageResultProps> = ({ generationResult, setIsLoadin
           clearInterval(interval);
           setPollingInterval(null);
           setIsLoading(false);
-          toast.success('Image generation completed!');
+          // No toast notification here - we simply update the UI
         }
       } catch (error) {
         console.error('Error checking generation status:', error);
         clearInterval(interval);
         setPollingInterval(null);
         setIsLoading(false);
-        toast.error('Failed to check generation status');
       }
     }, 2000);
     

@@ -88,10 +88,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       // Convert blob to file
       const file = new File([blob], 'sketch.png', { type: 'image/png' });
 
-      // Show which model is being used
-      toast.info(`Using ${selectedModel.name} model for generation...`, {
-        autoClose: 2000
-      });
+      // Removed toast notification indicating which model is being used
 
       // Send to API for processing
       const result = await generateImage(file, selectedStyle.id, selectedModel.id, description);
@@ -99,12 +96,11 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       // Set the generation result
       setGenerationResult(result);
       
-      // Success notification
-      toast.success('Image generation started!');
+      // Removed success toast notification
+      
     } catch (error) {
       console.error('Failed to generate image:', error);
       toast.error('Failed to generate image. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };

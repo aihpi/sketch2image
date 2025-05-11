@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './styles/App.css';
 
@@ -44,6 +44,8 @@ const App: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to fetch initial data:', error);
+        // Only show error toast for critical failures
+        toast.error('Failed to connect to the server. Please check your connection and reload.');
       }
     };
 
@@ -52,7 +54,8 @@ const App: React.FC = () => {
 
   return (
     <div className="app">
-      <ToastContainer position="top-right" autoClose={5000} />
+      {/* Keep ToastContainer but limit its use to only critical errors */}
+      <ToastContainer position="top-right" autoClose={5000} limit={1} />
       
       <header className="app-header">
         <h1>Sketch to Image</h1>
