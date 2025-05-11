@@ -1,19 +1,13 @@
+// frontend/src/components/LoadingOverlay.tsx
 import React from 'react';
 import '../styles/LoadingOverlay.css';
 
-interface LoadingOverlayProps {
-  modelName?: string;
-}
-
-const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ modelName }) => {
+const LoadingOverlay: React.FC = () => {
   return (
     <div className="loading-overlay">
       <div className="spinner"></div>
       <p className="loading-text">Generating your image...</p>
-      {modelName ? (
-        <p className="loading-model">Using {modelName}</p>
-      ) : null}
-      <p className="loading-subtext">This may take 10-30 seconds depending on the selected model</p>
+      <p className="loading-subtext">This may take 10-30 seconds</p>
     </div>
   );
 };

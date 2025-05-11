@@ -1,17 +1,31 @@
-// frontend/src/components/ImageResult.tsx
 import React, { useEffect, useState } from 'react';
 import { GenerationResult } from '../types';
 import { checkGenerationStatus } from '../services/api';
 import '../styles/ImageResult.css';
+import { useReset } from '../ResetContext'; // Import the reset hook
 
 interface ImageResultProps {
   generationResult: GenerationResult | null;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  setGenerationResult: React.Dispatch<React.SetStateAction<GenerationResult | null>>;
 }
 
-const ImageResult: React.FC<ImageResultProps> = ({ generationResult, setIsLoading }) => {
+const ImageResult: React.FC<ImageResultProps> = ({ 
+  generationResult, 
+  setIsLoading,
+  setGenerationResult 
+}) => {
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const { resetTrigger } = useReset(); // Use the reset context
+
+  // Reset result when reset is triggered
+  useEffect(() => {
+    if (resetTrigger > 0) {
+      setResult(null);
+      setGenerationResult(null);
+    }
+  }, [resetTrigger, setGenerationResult]);
 
   // Update local state when parent passes a new generation result
   useEffect(() => {
@@ -55,7 +69,6 @@ const ImageResult: React.FC<ImageResultProps> = ({ generationResult, setIsLoadin
           clearInterval(interval);
           setPollingInterval(null);
           setIsLoading(false);
-          // No toast notification here - we simply update the UI
         }
       } catch (error) {
         console.error('Error checking generation status:', error);
@@ -67,6 +80,33 @@ const ImageResult: React.FC<ImageResultProps> = ({ generationResult, setIsLoadin
     
     setPollingInterval(interval);
   };
+
+  // Handle direct image download
+  const handleDownload = () => {
+    if (result?.image_url) {
+      const imageUrl = `${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${result.image_url}`;
+      
+      // Create a link element
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = `generated-image-${new Date().getTime()}.png`;
+      
+      // Fetch the image as blob and trigger download
+      fetch(imageUrl)
+        .then(response => response.blob())
+        .then(blob => {
+          const url = URL.createObjectURL(blob);
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+          console.error('Error downloading image:', error);
+        });
+    }
+  };
   
   // If no result yet, show placeholder
   if (!result) {
@@ -74,7 +114,7 @@ const ImageResult: React.FC<ImageResultProps> = ({ generationResult, setIsLoadin
       <div className="image-result empty">
         <div className="placeholder">
           <p>Your generated image will appear here</p>
-          <p>Draw a sketch and click "Generate Image" to get started</p>
+          <p>Draw a sketch and click "Generate Image" to start</p>
         </div>
       </div>
     );
@@ -97,18 +137,24 @@ const ImageResult: React.FC<ImageResultProps> = ({ generationResult, setIsLoadin
     <div className="image-result completed">
       {result.image_url && (
         <div className="image-container">
-          <img 
-            src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${result.image_url}`} 
-            alt="Generated from sketch" 
-          />
+          <div className="image-wrapper">
+            <img 
+              src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${result.image_url}`} 
+              alt="Generated from sketch" 
+            />
+          </div>
           <div className="image-controls">
-            <a 
-              href={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${result.image_url}`}
-              download="generated-image.png"
+            <button 
               className="download-button"
+              onClick={handleDownload}
             >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="download-icon">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
               Download Image
-            </a>
+            </button>
           </div>
         </div>
       )}

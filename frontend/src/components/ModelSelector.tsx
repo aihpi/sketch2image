@@ -1,3 +1,4 @@
+// frontend/src/components/ModelSelector.tsx
 import React from 'react';
 import { Model } from '../types';
 import '../styles/ModelSelector.css';
@@ -34,17 +35,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           </option>
         ))}
       </select>
-      
-      {selectedModel && (
-        <div className="model-info">
-          <div className="model-speed">
-            <span className="info-label">Speed:</span> {selectedModel.inference_speed}
-          </div>
-          <div className="model-recommended">
-            <span className="info-label">Best for:</span> {selectedModel.recommended_for.join(', ')}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

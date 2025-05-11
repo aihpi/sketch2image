@@ -1,3 +1,4 @@
+/* frontend/src/styles/LoadingOverlay.css */
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -11,16 +12,17 @@
   justify-content: center;
   z-index: 1000;
   color: white;
+  backdrop-filter: blur(5px);
 }
 
 .spinner {
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border: 5px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: var(--primary-color);
   animation: spin 1s ease-in-out infinite;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 @keyframes spin {
@@ -30,17 +32,13 @@
 }
 
 .loading-text {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   margin-bottom: 0.5rem;
-}
-
-.loading-model {
-  font-size: 1rem;
-  color: var(--secondary-color);
-  margin-bottom: 0.5rem;
+  font-weight: 500;
 }
 
 .loading-subtext {
-  font-size: 0.9rem;
-  opacity: 0.8;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-top: 0;
 }

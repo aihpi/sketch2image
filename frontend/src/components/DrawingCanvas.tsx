@@ -1,29 +1,39 @@
-// frontend/src/components/DrawingCanvas.tsx
 import React, { useRef, useEffect } from 'react';
 import { Excalidraw, exportToBlob } from '@excalidraw/excalidraw';
-import { toast } from 'react-toastify';
 import { generateImage } from '../services/api';
 import { Style, Model, GenerationResult } from '../types';
+import { useReset } from '../ResetContext'; // Import the reset hook
 
 interface DrawingCanvasProps {
   selectedStyle: Style | null;
   selectedModel: Model | null;
+  styles: Style[];
+  models: Model[];
   description: string;
   setDescription: React.Dispatch<React.SetStateAction<string>>;
+  setSelectedStyle: React.Dispatch<React.SetStateAction<Style | null>>;
+  setSelectedModel: React.Dispatch<React.SetStateAction<Model | null>>;
   setGenerationResult: React.Dispatch<React.SetStateAction<GenerationResult | null>>;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  showNotification: (message: string, type: 'error' | 'info' | 'success') => void;
 }
 
 const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   selectedStyle,
   selectedModel,
+  styles,
+  models,
   description,
   setDescription,
+  setSelectedStyle,
+  setSelectedModel,
   setGenerationResult,
   setIsLoading,
+  showNotification,
 }) => {
   const excalidrawRef = useRef<any>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const { triggerReset } = useReset(); // Use the reset context
 
   // Force Excalidraw to resize properly
   useEffect(() => {
@@ -42,24 +52,29 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   }, []);
 
   const handleGenerateImage = async () => {
-    if (!selectedStyle) {
-      toast.error('Please select a style first');
-      return;
-    }
-
-    if (!selectedModel) {
-      toast.error('Please select a model first');
-      return;
-    }
-
     if (!excalidrawRef.current) {
-      toast.error('Canvas is not initialized');
+      showNotification('Canvas is not initialized', 'error');
       return;
     }
 
     const elements = excalidrawRef.current.getSceneElements();
     if (!elements || elements.length === 0) {
-      toast.error('Please draw something first');
+      showNotification('Please draw something first', 'error');
+      return;
+    }
+
+    if (!selectedStyle) {
+      showNotification('Please select a style first', 'error');
+      return;
+    }
+
+    if (!selectedModel) {
+      showNotification('Please select a model first', 'error');
+      return;
+    }
+
+    if (!description.trim()) {
+      showNotification('Please describe what you want to generate', 'error');
       return;
     }
 
@@ -88,27 +103,43 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       // Convert blob to file
       const file = new File([blob], 'sketch.png', { type: 'image/png' });
 
-      // Removed toast notification indicating which model is being used
-
       // Send to API for processing
       const result = await generateImage(file, selectedStyle.id, selectedModel.id, description);
 
       // Set the generation result
       setGenerationResult(result);
       
-      // Removed success toast notification
-      
     } catch (error) {
       console.error('Failed to generate image:', error);
-      toast.error('Failed to generate image. Please try again.');
+      showNotification('Failed to generate image. Please try again.', 'error');
       setIsLoading(false);
     }
   };
 
-  const handleClearCanvas = () => {
+  // Reset everything
+  const handleReset = () => {
+    // Clear the canvas
     if (excalidrawRef.current) {
       excalidrawRef.current.resetScene();
     }
+    
+    // Reset description
+    setDescription('');
+    
+    // Reset style and model to the first option
+    if (styles.length > 0) {
+      setSelectedStyle(styles[0]);
+    }
+    
+    if (models.length > 0) {
+      setSelectedModel(models[0]);
+    }
+
+    // Clear any previous results
+    setGenerationResult(null);
+    
+    // Trigger reset for other components
+    triggerReset();
   };
 
   return (
@@ -119,8 +150,8 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         style={{ 
           width: '100%', 
           height: 500, 
-          border: '1px solid #ddd',
-          borderRadius: '4px',
+          border: '1px solid #e0e0e0',
+          borderRadius: '8px',
           overflow: 'hidden',
           position: 'relative'
         }}
@@ -132,7 +163,6 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               viewBackgroundColor: '#ffffff',
             },
           }}
-          // The following props ensure the Excalidraw component takes up all the space in its container
           UIOptions={{
             canvasActions: {
               changeViewBackgroundColor: false,
@@ -150,15 +180,14 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <button 
           className="generate-button"
           onClick={handleGenerateImage}
-          disabled={!selectedStyle || !selectedModel}
         >
           Generate Image
         </button>
         <button 
           className="clear-button"
-          onClick={handleClearCanvas}
+          onClick={handleReset}
         >
-          Clear Canvas
+          Reset All
         </button>
       </div>
     </div>

@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import './styles/App.css';
 
 // Components
@@ -9,6 +7,8 @@ import StyleSelector from './components/StyleSelector';
 import ModelSelector from './components/ModelSelector';
 import ImageResult from './components/ImageResult';
 import LoadingOverlay from './components/LoadingOverlay';
+import Notification from './components/Notification';
+import { ResetProvider } from './ResetContext'; // Import the context
 
 // Services
 import { fetchStyles, fetchModels } from './services/api';
@@ -24,6 +24,29 @@ const App: React.FC = () => {
   const [description, setDescription] = useState<string>('');
   const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: 'error' | 'info' | 'success';
+  }>({
+    show: false,
+    message: '',
+    type: 'info'
+  });
+
+  // Show notification function
+  const showNotification = (message: string, type: 'error' | 'info' | 'success') => {
+    setNotification({
+      show: true,
+      message,
+      type
+    });
+  };
+
+  // Close notification function
+  const closeNotification = () => {
+    setNotification(prev => ({ ...prev, show: false }));
+  };
 
   // Fetch available styles and models on component mount
   useEffect(() => {
@@ -44,8 +67,7 @@ const App: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to fetch initial data:', error);
-        // Only show error toast for critical failures
-        toast.error('Failed to connect to the server. Please check your connection and reload.');
+        showNotification('Failed to connect to the server. Please check your connection and reload.', 'error');
       }
     };
 
@@ -53,61 +75,73 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="app">
-      {/* Keep ToastContainer but limit its use to only critical errors */}
-      <ToastContainer position="top-right" autoClose={5000} limit={1} />
-      
-      <header className="app-header">
-        <h1>Sketch to Image</h1>
-        <p>Draw a sketch and see it transformed into a realistic image</p>
-      </header>
-
-      <main className="app-content">
-        <div className="canvas-container">
-          <h2>Your Sketch</h2>
-          <DrawingCanvas 
-            selectedStyle={selectedStyle}
-            selectedModel={selectedModel}
-            description={description}
-            setDescription={setDescription}
-            setGenerationResult={setGenerationResult}
-            setIsLoading={setIsLoading}
+    <ResetProvider>
+      <div className="app">
+        {notification.show && (
+          <Notification
+            message={notification.message}
+            type={notification.type}
+            onClose={closeNotification}
           />
-          <div className="style-controls">
-            <ModelSelector 
-              models={models} 
-              selectedModel={selectedModel} 
-              setSelectedModel={setSelectedModel} 
+        )}
+        
+        <header className="app-header">
+          <h1>Sketch to Image</h1>
+          <p>Draw a sketch and see it transformed into a realistic image</p>
+        </header>
+
+        <main className="app-content">
+          <div className="canvas-container">
+            <DrawingCanvas 
+              selectedStyle={selectedStyle}
+              selectedModel={selectedModel}
+              styles={styles}
+              models={models}
+              description={description}
+              setDescription={setDescription}
+              setSelectedStyle={setSelectedStyle}
+              setSelectedModel={setSelectedModel}
+              setGenerationResult={setGenerationResult}
+              setIsLoading={setIsLoading}
+              showNotification={showNotification}
             />
-            <StyleSelector 
-              styles={styles} 
-              selectedStyle={selectedStyle} 
-              setSelectedStyle={setSelectedStyle} 
-            />
-            <div className="description-input">
-              <label htmlFor="description">Optional Description:</label>
-              <input
-                type="text"
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g., a cat sitting on a chair"
+            
+            <div className="style-controls">
+              <ModelSelector 
+                models={models} 
+                selectedModel={selectedModel} 
+                setSelectedModel={setSelectedModel} 
               />
+              <StyleSelector 
+                styles={styles} 
+                selectedStyle={selectedStyle} 
+                setSelectedStyle={setSelectedStyle} 
+              />
+              <div className="description-input">
+                <label htmlFor="description">Description</label>
+                <input
+                  type="text"
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="e.g., a cat sitting on a chair"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="result-container">
-          <h2>Generated Image</h2>
-          <ImageResult 
-            generationResult={generationResult} 
-            setIsLoading={setIsLoading}
-          />
-        </div>
-      </main>
+          <div className="result-container">
+            <ImageResult 
+              generationResult={generationResult} 
+              setIsLoading={setIsLoading}
+              setGenerationResult={setGenerationResult}
+            />
+          </div>
+        </main>
 
-      {isLoading && <LoadingOverlay modelName={selectedModel?.name} />}
-    </div>
+        {isLoading && <LoadingOverlay />}
+      </div>
+    </ResetProvider>
   );
 };
 
