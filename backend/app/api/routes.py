@@ -30,13 +30,7 @@ async def get_models():
     models = []
     for model_id, model_data in settings.AVAILABLE_MODELS.items():
         # Include preprocessing info in the description
-        preprocess_info = ""
-        if model_data.get("preprocessing", {}).get("invert", False):
-            preprocess_info = " (Works best with black background, white lines)"
-        else:
-            preprocess_info = " (Works best with white background, black lines)"
-            
-        description = f"Inference speed: {model_data['inference_speed']}{preprocess_info}"
+        description = f"Inference speed: {model_data['inference_speed']}"
         
         models.append(
             ModelOption(
@@ -92,11 +86,10 @@ async def generate_image(
     
     try:
         # Build the prompt based on style and optional description
-        prompt = style.prompt_prefix
         if description:
-            prompt += f" {description}"
+            prompt = f"{description}, {style.name}, best quality, extremely detailed"
         else:
-            prompt += " a scene"  # Generic fallback
+            prompt = f"a scene, {style.name}, best quality, extremely detailed"
         
         # Use model's default negative prompt if available
         negative_prompt = model_info.get("config", {}).get("default_negative_prompt", 

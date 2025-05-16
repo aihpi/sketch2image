@@ -22,9 +22,14 @@ class Settings:
     ]
     
     # Model Settings
+    # DEFAULT_MODEL_ID: str = os.getenv(
+    #     "DEFAULT_MODEL_ID", 
+    #     "t2i_adapter_sdxl"  # Default to T2I adapter
+    # )
+
     DEFAULT_MODEL_ID: str = os.getenv(
-        "DEFAULT_MODEL_ID", 
-        "t2i_adapter_sdxl"  # Default to T2I adapter
+    "DEFAULT_MODEL_ID", 
+    "controlnet_scribble"  # Default to ControlNet Scribble
     )
     
     # Enable sketch preprocessing with PidiNet
@@ -35,84 +40,56 @@ class Settings:
     
     # Available Models
     AVAILABLE_MODELS = {
-        "controlnet_sd15_scribble": {
-            "name": "Stable Diffusion 1.5 + ControlNet (Scribble)",
-            "huggingface_id": "lllyasviel/control_v11p_sd15_scribble",
-            "base_model": "runwayml/stable-diffusion-v1-5",
-            "inference_speed": "Moderate (5-15s on GPU, ~30s on CPU)",
-            "recommended_for": ["Balanced quality and speed", "General purpose"],
-            "preprocessing": {
-                "type": "scribble",
-                "invert": False,  # Don't invert, use white background and black lines
-                "normalize": True
-            },
-            "config": {
-                "pipeline_type": "StableDiffusionControlNetPipeline",
-                "model_type": "ControlNetModel",
-                "needs_safety_checker": True
-            }
+    "controlnet_scribble": {
+        "name": "SD 1.5 + ControlNet Scribble",
+        "huggingface_id": "lllyasviel/sd-controlnet-scribble",
+        "base_model": "runwayml/stable-diffusion-v1-5",
+        "inference_speed": "Fast (5-15s on GPU)",
+        "recommended_for": ["Simple sketches", "Fast generation"],
+        "preprocessing": {
+            "type": "pidinet",
+            "detect_resolution": 768,
+            "image_resolution": 768,
+            "apply_filter": False,
+            "enhance_contrast": 1.5,
+            "safe_steps": 2
         },
-        "controlnet_sd15_softedge": {
-            "name": "Stable Diffusion 1.5 + ControlNet (SoftEdge)",
-            "huggingface_id": "lllyasviel/control_v11p_sd15_softedge",
-            "base_model": "runwayml/stable-diffusion-v1-5",
-            "inference_speed": "Moderate (5-15s on GPU, ~30s on CPU)",
-            "recommended_for": ["Detailed drawings", "Soft sketches", "Less harsh lines"],
-            "preprocessing": {
-                "type": "pidinet",  # Use PidiNet preprocessing
-                "invert": False,    # No inversion needed
-                "normalize": True
-            },
-            "config": {
-                "pipeline_type": "StableDiffusionControlNetPipeline",
-                "model_type": "ControlNetModel",
-                "needs_safety_checker": True
-            }
+        "config": {
+            "pipeline_type": "StableDiffusionControlNetPipeline",
+            "model_type": "ControlNetModel",
+            "needs_safety_checker": False,
+            "num_inference_steps": 20,
+            "guidance_scale": 7.5,
+            "default_negative_prompt": "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
+        }
+    },
+    "t2i_adapter_sdxl": {
+        "name": "SDXL + T2I-Adapter Sketch",
+        "huggingface_id": "TencentARC/t2i-adapter-sketch-sdxl-1.0",
+        "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
+        "inference_speed": "Medium (10-30s on GPU)",
+        "recommended_for": ["Detailed sketches", "High quality output"],
+        "preprocessing": {
+            "type": "pidinet",
+            "detect_resolution": 768,
+            "image_resolution": 768,
+            "apply_filter": False,
+            "enhance_contrast": 1.5,
+            "safe_steps": 2
         },
-        "controlnet_sdxl_scribble": {
-            "name": "Stable Diffusion XL + ControlNet (Scribble)",
-            "huggingface_id": "xinsir/controlnet-scribble-sdxl-1.0",
-            "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
-            "inference_speed": "Slow (10-30s per image)",
-            "recommended_for": ["High quality", "Detailed outputs"],
-            "preprocessing": {
-                "type": "scribble",
-                "invert": False,  # Don't invert, use white background and black lines
-                "normalize": True
-            },
-            "config": {
-                "pipeline_type": "StableDiffusionXLControlNetPipeline",
-                "model_type": "ControlNetModel",
-                "needs_safety_checker": True
-            }
-        },
-        "t2i_adapter_sdxl": {
-            "name": "SDXL + T2I-Adapter (Sketch)",
-            "huggingface_id": "Adapter/t2iadapter",
-            "sub_folder": "sketch_sdxl_1.0",
-            "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
-            "vae_model": "madebyollin/sdxl-vae-fp16-fix",
-            "model_type": "t2i_adapter",
-            "inference_speed": "Moderate-Slow (10-40s on GPU)",
-            "recommended_for": ["High quality robot versions", "Best results with PidiNet preprocessing"],
-            "preprocessing": {
-                "type": "pidinet",  # Use PidiNet preprocessing
-                "invert": False,     # This model works better with inverted input (black background, white lines)
-                "normalize": True
-            },
-            "config": {
-                "pipeline_type": "StableDiffusionXLAdapterPipeline",
-                "model_type": "T2IAdapter",
-                "needs_safety_checker": True,
-                "adapter_conditioning_scale": 0.9,
-                "adapter_conditioning_factor": 0.9,
-                "num_inference_steps": 40,
-                "guidance_scale": 7.5,
-                "custom_scheduler": True,
-                "default_negative_prompt": "disfigured, extra digit, fewer digits, cropped, worst quality, low quality"
-            }
+        "config": {
+            "pipeline_type": "StableDiffusionXLAdapterPipeline",
+            "model_type": "T2IAdapter",
+            "needs_safety_checker": False,
+            "adapter_conditioning_scale": 0.9,
+            "adapter_conditioning_factor": 0.9,
+            "num_inference_steps": 40,
+            "guidance_scale": 7.5,
+            "adapter_type": "full_adapter_xl",
+            "default_negative_prompt": "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
         }
     }
+}
     
     DEVICE: str = os.getenv("DEVICE", "cuda" if os.path.exists("/dev/nvidia0") else "cpu")
     

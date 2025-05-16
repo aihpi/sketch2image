@@ -44,7 +44,7 @@ RUN pip install --no-cache-dir \
     accelerate==0.23.0
 
 # Install memory optimization libraries
-RUN pip install --no-cache-dir xformers==0.0.22.post7
+RUN pip install --no-cache-dir xformers
 
 # Install dependencies for specific models
 RUN pip install --no-cache-dir \

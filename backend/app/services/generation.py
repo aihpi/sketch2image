@@ -1,10 +1,9 @@
 import os
 import torch
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageEnhance
 import numpy as np
-from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, StableDiffusionXLControlNetPipeline
-from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter
-from diffusers import EulerAncestralDiscreteScheduler, AutoencoderKL
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
+from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, DDPMScheduler
 from diffusers.utils import load_image
 import torchvision.transforms as T
 from app.core.config import settings
@@ -38,13 +37,7 @@ def get_pidinet_processor():
     
     return pidinet_processor
 
-def normalize_sketch(sketch):
-    """Normalize sketch to have proper contrast and detail"""
-    sketch = sketch.convert("L")  # Convert to grayscale
-    tensor = T.ToTensor()(sketch)
-    return T.ToPILImage()(tensor)
-
-def preprocess_with_pidinet(image, detect_resolution=None, image_resolution=None, apply_filter=None, invert=False):
+def preprocess_with_pidinet(image, detect_resolution=1024, image_resolution=1024, apply_filter=False, enhance_contrast=1.5, safe_steps=2):
     """
     Preprocess an image using PidiNet to create a sketch-like format
     """
@@ -61,25 +54,19 @@ def preprocess_with_pidinet(image, detect_resolution=None, image_resolution=None
         if isinstance(image, str):
             image = Image.open(image)
         
-        # Set default parameters from settings if not provided
-        if detect_resolution is None:
-            detect_resolution = settings.PIDINET_DETECT_RESOLUTION
-        if image_resolution is None:
-            image_resolution = settings.PIDINET_IMAGE_RESOLUTION
-        if apply_filter is None:
-            apply_filter = settings.PIDINET_APPLY_FILTER
-        
-        # Process image
+        # Process image with PidiNet
         processed_image = processor(
             image,
             detect_resolution=detect_resolution,
             image_resolution=image_resolution,
-            apply_filter=apply_filter
-        ).convert("L")
+            apply_filter=apply_filter,
+            safe_steps=safe_steps
+        )
         
-        # Invert if needed
-        if invert:
-            processed_image = ImageOps.invert(processed_image)
+        # Enhance contrast if requested
+        if enhance_contrast > 0:
+            enhancer = ImageEnhance.Contrast(processed_image)
+            processed_image = enhancer.enhance(enhance_contrast)
             
         return processed_image
     except Exception as e:
@@ -89,10 +76,6 @@ def preprocess_with_pidinet(image, detect_resolution=None, image_resolution=None
             image = Image.open(image).convert("L")
         else:
             image = image.convert("L")
-            
-        # Invert if needed
-        if invert:
-            image = ImageOps.invert(image)
             
         return image
 
@@ -116,87 +99,49 @@ def load_model_pipeline(model_id):
     torch_dtype = torch.float16 if device == "cuda" else torch.float32
    
     print(f"Device set to: {device}")
-    print(f"Is CUDA available: {torch.cuda.is_available()}")
-    if torch.cuda.is_available():
-        print(f"Current CUDA device: {torch.cuda.current_device()}")
-        print(f"Device name: {torch.cuda.get_device_name()}")
-        print(f"Memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB")
-        print(f"Memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB")
     
     try:
         print(f"Loading model: {model_id} ({huggingface_id})")
         
-        # Different loading logic based on model type
-        if model_id in ["controlnet_sd15_scribble", "controlnet_sd15_softedge"]:
-            # Stable Diffusion 1.5 + ControlNet
+        if model_id == "controlnet_scribble":
+            # Load ControlNet Scribble model
             controlnet = ControlNetModel.from_pretrained(
                 huggingface_id,
                 torch_dtype=torch_dtype
             )
             
+            # Load pipeline with stable diffusion v1-5
             pipeline = StableDiffusionControlNetPipeline.from_pretrained(
                 "runwayml/stable-diffusion-v1-5",
                 controlnet=controlnet,
+                safety_checker=None,
                 torch_dtype=torch_dtype
             )
             
-        elif model_id == "controlnet_sdxl_scribble":
-            # Stable Diffusion XL + ControlNet
-            controlnet = ControlNetModel.from_pretrained(
-                huggingface_id,
-                torch_dtype=torch_dtype
-            )
-            
-            pipeline = StableDiffusionXLControlNetPipeline.from_pretrained(
-                "stabilityai/stable-diffusion-xl-base-1.0",
-                controlnet=controlnet,
-                torch_dtype=torch_dtype
-            )
+            # Use UniPC scheduler as in the example
+            pipeline.scheduler = UniPCMultistepScheduler.from_config(pipeline.scheduler.config)
             
         elif model_id == "t2i_adapter_sdxl":
-            # Stable Diffusion XL + T2I-Adapter
-            
-            # 1. Load the T2I adapter
+            # Load the T2I adapter for SDXL
             adapter = T2IAdapter.from_pretrained(
                 huggingface_id,
-                subfolder=model_info.get("sub_folder", ""),
-                torch_dtype=torch_dtype
+                torch_dtype=torch_dtype,
+                adapter_type="full_adapter_xl"
             )
             
-            # 2. Load the VAE if specified
-            vae = None
-            if "vae_model" in model_info:
-                vae = AutoencoderKL.from_pretrained(
-                    model_info["vae_model"],
-                    torch_dtype=torch_dtype
-                )
+            # Create the scheduler
+            scheduler = DDPMScheduler.from_pretrained(
+                model_info["base_model"], 
+                subfolder="scheduler"
+            )
             
-            # 3. Load the custom scheduler if specified
-            scheduler = None
-            if model_info.get("config", {}).get("custom_scheduler", False):
-                scheduler = EulerAncestralDiscreteScheduler.from_pretrained(
-                    model_info["base_model"],
-                    subfolder="scheduler"
-                )
-            
-            # 4. Set up the pipeline with all components
-            kwargs = {
-                "adapter": adapter,
-                "torch_dtype": torch_dtype
-            }
-            
-            if vae is not None:
-                kwargs["vae"] = vae
-                
-            if scheduler is not None:
-                kwargs["scheduler"] = scheduler
-                
-            if "sdxl" in model_info.get("base_model", "").lower():
-                kwargs["variant"] = "fp16" if device == "cuda" else None
-            
+            # Create the pipeline
             pipeline = StableDiffusionXLAdapterPipeline.from_pretrained(
                 model_info["base_model"],
-                **kwargs
+                adapter=adapter,
+                scheduler=scheduler,
+                torch_dtype=torch_dtype,
+                variant="fp16" if device == "cuda" else None
             )
         
         # Move to device (GPU if available)
@@ -210,9 +155,14 @@ def load_model_pipeline(model_id):
                     pipeline.enable_xformers_memory_efficient_attention()
                     print("Enabled xformers memory efficient attention")
                 else:
-                    # Fall back to attention slicing if xformers fails
-                    pipeline.enable_attention_slicing()
-                    print("Enabled attention slicing")
+                    # Try to enable model CPU offload as shown in the example
+                    if hasattr(pipeline, "enable_model_cpu_offload"):
+                        pipeline.enable_model_cpu_offload()
+                        print("Enabled model CPU offload")
+                    else:
+                        # Fall back to attention slicing if neither is available
+                        pipeline.enable_attention_slicing()
+                        print("Enabled attention slicing")
             except Exception as e:
                 print(f"Warning: Could not optimize memory usage: {str(e)}")
                 # Still enable attention slicing as fallback
@@ -233,7 +183,6 @@ def load_model_pipeline(model_id):
 def preprocess_sketch(sketch_path, model_id):
     """
     Preprocess the sketch to match the expected format for the specific model
-    Each model may have different preprocessing requirements
     """
     # Get the model info and preprocessing settings
     if model_id not in settings.AVAILABLE_MODELS:
@@ -242,11 +191,6 @@ def preprocess_sketch(sketch_path, model_id):
     model_info = settings.AVAILABLE_MODELS[model_id]
     preprocessing = model_info.get("preprocessing", {})
     
-    # Determine preprocessing type
-    preprocess_type = preprocessing.get("type", "scribble")
-    invert = preprocessing.get("invert", False)
-    normalize = preprocessing.get("normalize", True)
-    
     # Create a path for the preprocessed image
     sketch_filename = os.path.basename(sketch_path)
     preprocessed_path = os.path.join(settings.PREPROCESSED_DIR, f"{model_id}_{sketch_filename}")
@@ -254,28 +198,23 @@ def preprocess_sketch(sketch_path, model_id):
     # Load the original image
     original_image = Image.open(sketch_path)
     
-    # Process based on type
-    if preprocess_type == "pidinet" and settings.USE_PIDINET_PREPROCESSING:
-        print(f"Using PidiNet for sketch preprocessing with model {model_id}")
-        processed_image = preprocess_with_pidinet(
-            original_image,
-            invert=invert
-        )
-    else:
-        # Basic scribble processing
-        print(f"Using basic scribble preprocessing for model {model_id}")
-        processed_image = original_image.convert("L")
-        
-        # Invert if needed (some models expect black background with white lines)
-        if invert:
-            processed_image = ImageOps.invert(processed_image)
+    # Get preprocessing parameters
+    detect_resolution = preprocessing.get("detect_resolution", 1024)
+    image_resolution = preprocessing.get("image_resolution", 1024)
+    apply_filter = preprocessing.get("apply_filter", False)
+    enhance_contrast = preprocessing.get("enhance_contrast", 1.5)
+    safe_steps = preprocessing.get("safe_steps", 2)
     
-    # Normalize if requested
-    if normalize:
-        processed_image = normalize_sketch(processed_image)
-    
-    # Resize to the expected output size
-    processed_image = processed_image.resize((settings.OUTPUT_IMAGE_SIZE, settings.OUTPUT_IMAGE_SIZE))
+    # Always use PidiNet for preprocessing
+    print(f"Using PidiNet for sketch preprocessing with model {model_id}")
+    processed_image = preprocess_with_pidinet(
+        original_image,
+        detect_resolution=detect_resolution,
+        image_resolution=image_resolution,
+        apply_filter=apply_filter,
+        enhance_contrast=enhance_contrast,
+        safe_steps=safe_steps
+    )
     
     # Save the preprocessed image for debugging/reference
     processed_image.save(preprocessed_path)
@@ -287,7 +226,7 @@ async def generate_image_from_sketch(
     sketch_path, 
     output_path, 
     prompt, 
-    model_id="t2i_adapter_sdxl",
+    model_id="controlnet_scribble",
     negative_prompt=""
 ):
     """Generate an image from a sketch using the selected model"""
@@ -314,8 +253,8 @@ async def generate_image_from_sketch(
         }
         
         # Get specific parameters from config
-        num_inference_steps = config.get("num_inference_steps", settings.NUM_INFERENCE_STEPS)
-        guidance_scale = config.get("guidance_scale", settings.GUIDANCE_SCALE)
+        num_inference_steps = config.get("num_inference_steps", 20)
+        guidance_scale = config.get("guidance_scale", 7.5)
         
         params["num_inference_steps"] = num_inference_steps
         params["guidance_scale"] = guidance_scale
