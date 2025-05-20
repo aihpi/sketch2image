@@ -22,21 +22,10 @@ class Settings:
     ]
     
     # Model Settings
-    # DEFAULT_MODEL_ID: str = os.getenv(
-    #     "DEFAULT_MODEL_ID", 
-    #     "t2i_adapter_sdxl"  # Default to T2I adapter
-    # )
-
     DEFAULT_MODEL_ID: str = os.getenv(
-    "DEFAULT_MODEL_ID", 
-    "controlnet_scribble"  # Default to ControlNet Scribble
+        "DEFAULT_MODEL_ID", 
+        "controlnet_scribble"  # Default to ControlNet Scribble
     )
-    
-    # Enable sketch preprocessing with PidiNet
-    USE_PIDINET_PREPROCESSING: bool = os.getenv("USE_PIDINET_PREPROCESSING", "True").lower() == "true"
-    PIDINET_DETECT_RESOLUTION: int = int(os.getenv("PIDINET_DETECT_RESOLUTION", "1024"))
-    PIDINET_IMAGE_RESOLUTION: int = int(os.getenv("PIDINET_IMAGE_RESOLUTION", "1024"))
-    PIDINET_APPLY_FILTER: bool = os.getenv("PIDINET_APPLY_FILTER", "True").lower() == "true"
     
     # Available Models
     AVAILABLE_MODELS = {
@@ -47,12 +36,9 @@ class Settings:
         "inference_speed": "Fast (5-15s on GPU)",
         "recommended_for": ["Simple sketches", "Fast generation"],
         "preprocessing": {
-            "type": "pidinet",
+            "type": "simple_inverter",
             "detect_resolution": 768,
             "image_resolution": 768,
-            "apply_filter": False,
-            "enhance_contrast": 1.5,
-            "safe_steps": 2
         },
         "config": {
             "pipeline_type": "StableDiffusionControlNetPipeline",
@@ -60,6 +46,7 @@ class Settings:
             "needs_safety_checker": False,
             "num_inference_steps": 20,
             "guidance_scale": 7.5,
+            "scheduler": "DDIMScheduler",
             "default_negative_prompt": "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
         }
     },
@@ -70,12 +57,9 @@ class Settings:
         "inference_speed": "Medium (10-30s on GPU)",
         "recommended_for": ["Detailed sketches", "High quality output"],
         "preprocessing": {
-            "type": "pidinet",
+            "type": "simple_inverter",
             "detect_resolution": 768,
             "image_resolution": 768,
-            "apply_filter": False,
-            "enhance_contrast": 1.5,
-            "safe_steps": 2
         },
         "config": {
             "pipeline_type": "StableDiffusionXLAdapterPipeline",
@@ -86,6 +70,8 @@ class Settings:
             "num_inference_steps": 40,
             "guidance_scale": 7.5,
             "adapter_type": "full_adapter_xl",
+            "vae": "madebyollin/sdxl-vae-fp16-fix",
+            "scheduler": "DDIMScheduler", # Changed to DDIM
             "default_negative_prompt": "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
         }
     }

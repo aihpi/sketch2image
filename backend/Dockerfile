@@ -46,10 +46,9 @@ RUN pip install --no-cache-dir \
 # Install memory optimization libraries
 RUN pip install --no-cache-dir xformers
 
-# Install dependencies for specific models
+# Install dependencies for specific models and processors
 RUN pip install --no-cache-dir \
     opencv-python-headless \
-    controlnet-aux==0.0.7 \
     safetensors==0.3.2
 
 # Install other requirements

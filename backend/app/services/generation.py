@@ -2,82 +2,66 @@ import os
 import torch
 from PIL import Image, ImageOps, ImageEnhance
 import numpy as np
-from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
-from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, DDPMScheduler
+from diffusers import (
+    StableDiffusionControlNetPipeline,
+    ControlNetModel,
+    DDIMScheduler,
+    StableDiffusionXLAdapterPipeline,
+    T2IAdapter,
+    AutoencoderKL
+)
 from diffusers.utils import load_image
 import torchvision.transforms as T
 from app.core.config import settings
 
 # Cache for loaded models
 model_cache = {}
-# Cache for PidiNet processor
-pidinet_processor = None
 
-def get_pidinet_processor():
-    """Get or initialize the PidiNet processor for sketch preprocessing"""
-    global pidinet_processor
-    
-    if pidinet_processor is None:
-        try:
-            from controlnet_aux.pidi import PidiNetDetector
-            
-            # Initialize the processor
-            processor = PidiNetDetector.from_pretrained("lllyasviel/Annotators")
-            
-            # Move to GPU if available
-            if torch.cuda.is_available():
-                processor = processor.to("cuda")
-                
-            pidinet_processor = processor
-            print("PidiNet processor initialized successfully")
-        except Exception as e:
-            print(f"Error initializing PidiNet processor: {str(e)}")
-            # Return None to indicate failure
-            return None
-    
-    return pidinet_processor
-
-def preprocess_with_pidinet(image, detect_resolution=1024, image_resolution=1024, apply_filter=False, enhance_contrast=1.5, safe_steps=2):
+def simple_sketch_inverter(image, target_resolution=768):
     """
-    Preprocess an image using PidiNet to create a sketch-like format
+    Simple processor that inverts sketches (dark lines on white background → white lines on dark background)
+    and resizes to the desired resolution
     """
     try:
-        # Get the PidiNet processor
-        processor = get_pidinet_processor()
-        if processor is None:
-            print("PidiNet processor not available, returning original image")
-            if isinstance(image, str):
-                return Image.open(image).convert("L")
-            return image.convert("L")
-        
         # If image is a path, load it
         if isinstance(image, str):
             image = Image.open(image)
         
-        # Process image with PidiNet
-        processed_image = processor(
-            image,
-            detect_resolution=detect_resolution,
-            image_resolution=image_resolution,
-            apply_filter=apply_filter,
-            safe_steps=safe_steps
-        )
+        # Resize to target resolution
+        width, height = image.size
+        scale_factor = target_resolution / max(width, height)
+        new_width = int(width * scale_factor)
+        new_height = int(height * scale_factor)
         
-        # Enhance contrast if requested
-        if enhance_contrast > 0:
-            enhancer = ImageEnhance.Contrast(processed_image)
-            processed_image = enhancer.enhance(enhance_contrast)
-            
-        return processed_image
+        image = image.resize((new_width, new_height), Image.LANCZOS)
+        
+        # Create a blank canvas with the target resolution
+        canvas = Image.new('RGB', (target_resolution, target_resolution), color='black')
+        
+        # Paste the resized image onto the canvas, centered
+        paste_x = (target_resolution - new_width) // 2
+        paste_y = (target_resolution - new_height) // 2
+        
+        # Convert to grayscale
+        image = image.convert("L")
+        
+        # Invert the image (dark lines on white background → white lines on dark background)
+        inverted_image = ImageOps.invert(image)
+        
+        # Convert back to RGB
+        inverted_image = inverted_image.convert("RGB")
+        
+        # Paste onto the canvas
+        canvas.paste(inverted_image, (paste_x, paste_y))
+        
+        return canvas
+        
     except Exception as e:
-        print(f"Error preprocessing image with PidiNet: {str(e)}")
-        # Fall back to original image
+        print(f"Error in simple sketch inverter: {str(e)}")
+        # Return original image if error occurs
         if isinstance(image, str):
-            image = Image.open(image).convert("L")
-        else:
-            image = image.convert("L")
-            
-        return image
+            return Image.open(image).convert("RGB")
+        return image.convert("RGB")
 
 def load_model_pipeline(model_id):
     """Load and cache model pipeline based on the model ID"""
@@ -118,19 +102,26 @@ def load_model_pipeline(model_id):
                 torch_dtype=torch_dtype
             )
             
-            # Use UniPC scheduler as in the example
-            pipeline.scheduler = UniPCMultistepScheduler.from_config(pipeline.scheduler.config)
+            # Use DDIM scheduler instead of UniPC
+            pipeline.scheduler = DDIMScheduler.from_config(pipeline.scheduler.config)
             
         elif model_id == "t2i_adapter_sdxl":
             # Load the T2I adapter for SDXL
             adapter = T2IAdapter.from_pretrained(
                 huggingface_id,
                 torch_dtype=torch_dtype,
-                adapter_type="full_adapter_xl"
+                adapter_type="full_adapter_xl",
+                variant="fp16" if device == "cuda" else None
             )
             
-            # Create the scheduler
-            scheduler = DDPMScheduler.from_pretrained(
+            # Create the VAE as specified
+            vae = AutoencoderKL.from_pretrained(
+                "madebyollin/sdxl-vae-fp16-fix",
+                torch_dtype=torch_dtype
+            )
+            
+            # Create the scheduler - using DDIM scheduler as specified
+            ddim_scheduler = DDIMScheduler.from_pretrained(
                 model_info["base_model"], 
                 subfolder="scheduler"
             )
@@ -139,7 +130,8 @@ def load_model_pipeline(model_id):
             pipeline = StableDiffusionXLAdapterPipeline.from_pretrained(
                 model_info["base_model"],
                 adapter=adapter,
-                scheduler=scheduler,
+                vae=vae,
+                scheduler=ddim_scheduler,
                 torch_dtype=torch_dtype,
                 variant="fp16" if device == "cuda" else None
             )
@@ -199,21 +191,13 @@ def preprocess_sketch(sketch_path, model_id):
     original_image = Image.open(sketch_path)
     
     # Get preprocessing parameters
-    detect_resolution = preprocessing.get("detect_resolution", 1024)
-    image_resolution = preprocessing.get("image_resolution", 1024)
-    apply_filter = preprocessing.get("apply_filter", False)
-    enhance_contrast = preprocessing.get("enhance_contrast", 1.5)
-    safe_steps = preprocessing.get("safe_steps", 2)
+    detect_resolution = preprocessing.get("detect_resolution", 768)
     
-    # Always use PidiNet for preprocessing
-    print(f"Using PidiNet for sketch preprocessing with model {model_id}")
-    processed_image = preprocess_with_pidinet(
+    # Use simple sketch inverter for both models (as requested)
+    print(f"Using simple sketch inverter for model {model_id}")
+    processed_image = simple_sketch_inverter(
         original_image,
-        detect_resolution=detect_resolution,
-        image_resolution=image_resolution,
-        apply_filter=apply_filter,
-        enhance_contrast=enhance_contrast,
-        safe_steps=safe_steps
+        target_resolution=detect_resolution
     )
     
     # Save the preprocessed image for debugging/reference
