@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Sketch-to-Image Demonstrator Setup Script
+# This script sets up and runs the Sketch-to-Image application
+
+echo "=== Sketch-to-Image Demonstrator Setup ==="
+echo "Setting up the environment and launching the application..."
+
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
     echo "Error: Docker is not installed. Please install Docker first."
@@ -13,73 +19,95 @@ if ! command -v docker-compose &> /dev/null; then
 fi
 
 # Create necessary directories
-mkdir -p backend/uploads backend/outputs frontend/public/
+mkdir -p backend/uploads backend/outputs backend/preprocessed
+echo "Created required directories."
 
-# Ensure frontend public directory has all required files
-if [ ! -f "frontend/public/index.html" ]; then
-    echo "Creating frontend public files..."
-    # These might be missing due to git configs or other reasons
-    touch frontend/public/favicon.ico
-    touch frontend/public/logo192.png
-    touch frontend/public/logo512.png
-fi
+# Set appropriate permissions
+chmod -R 777 backend/uploads backend/outputs backend/preprocessed
+echo "Set directory permissions."
 
 # Check for GPU support
 if command -v nvidia-smi &> /dev/null; then
-    echo "NVIDIA GPU detected! Enabling GPU support in docker-compose.yml"
-    sed -i 's/# deploy:/deploy:/g' docker-compose.yml
-    sed -i 's/#   resources:/  resources:/g' docker-compose.yml
-    sed -i 's/#     reservations:/    reservations:/g' docker-compose.yml
-    sed -i 's/#       devices:/      devices:/g' docker-compose.yml
-    sed -i 's/#         - driver: nvidia/        - driver: nvidia/g' docker-compose.yml
-    sed -i 's/#           count: 1/          count: 1/g' docker-compose.yml
-    sed -i 's/#           capabilities: \[gpu\]/          capabilities: [gpu]/g' docker-compose.yml
+    echo "NVIDIA GPU detected! Enabling GPU acceleration..."
     
-    # Update environment variable for device
-    sed -i 's/DEVICE=cpu/DEVICE=cuda/g' .env
+    # Test if NVIDIA Container Toolkit is installed
+    if docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi &> /dev/null; then
+        echo "NVIDIA Container Toolkit is working correctly."
+        
+        # Create temporary .env file with GPU settings
+        cat > .env << EOF
+DEVICE=cuda
+HOST=0.0.0.0
+PORT=8000
+DEBUG_MODE=true
+DEFAULT_MODEL_ID=controlnet_scribble
+NUM_INFERENCE_STEPS=20
+GUIDANCE_SCALE=7.5
+OUTPUT_IMAGE_SIZE=512
+FRONTEND_URL=http://localhost:3000
+EOF
+    else
+        echo "Warning: NVIDIA GPU detected, but NVIDIA Container Toolkit is not properly configured."
+        echo "Using CPU mode instead. For better performance, install NVIDIA Container Toolkit."
+        
+        # Create temporary .env file with CPU settings
+        cat > .env << EOF
+DEVICE=cpu
+HOST=0.0.0.0
+PORT=8000
+DEBUG_MODE=true
+DEFAULT_MODEL_ID=controlnet_scribble
+NUM_INFERENCE_STEPS=20
+GUIDANCE_SCALE=7.5
+OUTPUT_IMAGE_SIZE=512
+FRONTEND_URL=http://localhost:3000
+EOF
+    fi
 else
     echo "No NVIDIA GPU detected. Using CPU mode."
+    
+    # Create temporary .env file with CPU settings
+    cat > .env << EOF
+DEVICE=cpu
+HOST=0.0.0.0
+PORT=8000
+DEBUG_MODE=true
+DEFAULT_MODEL_ID=controlnet_scribble
+NUM_INFERENCE_STEPS=20
+GUIDANCE_SCALE=7.5
+OUTPUT_IMAGE_SIZE=512
+FRONTEND_URL=http://localhost:3000
+EOF
 fi
+
+echo "Environment configuration complete."
 
 # Build and start the containers
 echo "Building and starting containers..."
-echo "This may take several minutes on the first run..."
+echo "This may take several minutes on the first run as models are downloaded..."
 
-# Front-end build check
-echo "Building frontend container..."
-if ! docker-compose build frontend; then
-    echo "Error: Failed to build frontend container. Fixing TypeScript issues..."
-    
-    # Try to fix known issues
-    echo "Updating Excalidraw version and fixing type issues..."
-    sed -i 's/"@excalidraw\/excalidraw": "\^0.16.0"/"@excalidraw\/excalidraw": "0.15.2"/g' frontend/package.json
-    
-    # Try building again
-    if ! docker-compose build frontend; then
-        echo "Error: Still unable to build frontend. Please check the logs for more details."
-        exit 1
-    fi
-fi
+# Pull required Docker images
+docker pull nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04 &> /dev/null &
+docker pull node:18-alpine &> /dev/null &
+wait
 
-# Backend build check
-echo "Building backend container..."
-if ! docker-compose build backend; then
-    echo "Error: Failed to build backend container. Please check the logs for more details."
+# Build and start services
+docker-compose build && docker-compose up -d
+
+# Check if services started successfully
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "===== Setup Complete! ====="
+    echo "The Sketch-to-Image Demonstrator is now running."
+    echo ""
+    echo "- Frontend: http://localhost:3000"
+    echo "- Backend API: http://localhost:8000/api"
+    echo ""
+    echo "The first generation may take longer as models are downloaded and initialized."
+    echo ""
+    echo "To stop the application: docker-compose down"
+    echo "To view logs: docker-compose logs -f"
+else
+    echo "Error: Failed to start services. Please check the logs with: docker-compose logs"
     exit 1
 fi
-
-# Start the containers
-echo "Starting containers..."
-if ! docker-compose up -d; then
-    echo "Error: Failed to start containers. Check the logs for details."
-    echo "You can see the logs with: docker-compose logs"
-    exit 1
-fi
-
-echo ""
-echo "Setup completed! The application is now running."
-echo "- Frontend: http://localhost:3000"
-echo "- Backend API: http://localhost:8000/api"
-echo ""
-echo "To view the logs, run: docker-compose logs -f"
-echo "To stop the application, run: docker-compose down"

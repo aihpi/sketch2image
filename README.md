@@ -1,60 +1,29 @@
 # Sketch-to-Image Demonstrator
 
-This project is an interactive sketch-to-image demonstrator that allows users to draw freehand sketches and convert them into realistic or artistic images using machine learning.
+This project is an interactive tool that transforms simple sketches into detailed images using AI models. Users can draw freehand sketches and convert them into realistic or artistic images in various styles.
+
+![Sketch-to-Image Example](./docs/images/sketch2image_example.png)
 
 ## Features
 
-- **Intuitive Drawing Interface**: Built with Excalidraw for a natural drawing experience
-- **Style Selection**: Choose from multiple visual styles for your generated images (Photorealistic, Anime, Oil Painting, Watercolor, and Detailed Sketch)
+- **Interactive Drawing**: Built with Excalidraw for a natural drawing experience
+- **Model Selection**: Choose between two different AI models with different capabilities
+- **Multiple Styles**: Choose from multiple visual styles for your generated images (Photorealistic, Anime, Oil Painting, Watercolor, and Detailed Sketch)
 - **Responsive Design**: Works on tablets and desktop devices
 - **GPU Acceleration**: Utilizes NVIDIA GPUs when available for faster image generation
 
-## Technology Stack
-
-- **Frontend**: React with TypeScript, Excalidraw for drawing
-- **Backend**: Python with FastAPI
-- **ML Integration**: Hugging Face Diffusers with ControlNet for sketch-to-image conversion
-- **Deployment**: Docker for containerization
-
-## Project Structure
-
-```
-sketch2image/
-├── frontend/                # React frontend application
-│   ├── public/              # Static files
-│   ├── src/                 # Source code
-│   │   ├── components/      # React components
-│   │   ├── services/        # API service functions
-│   │   ├── styles/          # CSS styles
-│   │   └── types.ts         # TypeScript type definitions
-│   ├── package.json         # Frontend dependencies
-│   └── Dockerfile           # Frontend Docker configuration
-├── backend/                 # FastAPI backend
-│   ├── app/                 # Application code
-│   │   ├── api/             # API endpoints
-│   │   ├── core/            # Core functionality
-│   │   ├── models/          # Data models
-│   │   └── services/        # ML services
-│   ├── main.py              # Main application file
-│   ├── requirements.txt     # Python dependencies
-│   └── Dockerfile           # Backend Docker configuration
-├── .env                     # Environment variables
-├── docker-compose.yml       # Docker Compose configuration
-└── README.md                # Project documentation
-```
-
-## Getting Started
+## Setup and Installation
 
 ### Prerequisites
 
 - Docker and Docker Compose
-- For better performance: NVIDIA GPU with CUDA support
+- NVIDIA GPU with CUDA support (optional, but recommended for faster performance)
 
-### Installation and Setup
+### Quick Start
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/sketch2image.git
+   git clone https://github.com/aihpi/sketch2image.git
    cd sketch2image
    ```
 
@@ -68,63 +37,88 @@ sketch2image/
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000/api
 
-### GPU Acceleration
+## User Guide
 
-The application is configured to automatically use GPU acceleration if an NVIDIA GPU is available. The setup script detects your GPU and configures the application accordingly.
+### Using the Sketch-to-Image Tool
 
-## Usage Guide
-
-1. **Drawing Your Sketch**:
-   - Use the Excalidraw canvas to create your sketch
+1. **Draw your sketch** on the Excalidraw canvas
    - Keep lines clear and distinct for best results
-   - Simple sketches often work better than highly detailed ones
+   - Simple sketches work better than highly detailed ones
 
-2. **Selecting a Style**:
-   - Choose from available styles in the dropdown menu (Photorealistic, Anime, Oil Painting, etc.)
-   - Optionally add a description to guide the generation
+2. **Select an AI model**:
+   - **SD 1.5 + ControlNet Scribble**: Faster generation (5-15s on GPU)
+   - **SDXL + T2I-Adapter Sketch**: Higher quality but slower (10-30s on GPU)
 
-3. **Generating Images**:
-   - Click "Generate Image" when your sketch is ready
-   - Wait for the AI to process your sketch (typically 5-30 seconds with GPU, longer with CPU)
-   - When complete, the generated image will appear on the right side
+3. **Choose an output style**:
+   - **Photorealistic**: Realistic images with photographic details
+   - **Anime**: Cartoon/anime style with simplified shapes and bold colors
+   - **Oil Painting**: Artistic oil painting look with rich textures
+   - **Watercolor**: Soft watercolor art style with gentle color blending
+   - **Detailed Sketch**: Enhanced detailed sketch with improved linework and shading
+
+4. **Add a description**
+   - Describe what you're drawing for better results
+   - Example: "a cat sitting on a windowsill"
+   - Include key details you want emphasized
+
+5. **Click "Generate Image"**
+   - Wait for the AI to process your sketch (5-30 seconds)
+   - The generated image will appear on the right side
 
 4. **Managing Results**:
-   - Download the generated image using the "Download Image" button
-   - Clear the canvas to start a new sketch
+   - Download your image using the download button
+   - Use the "Reset All" button to start over with a new sketch
 
-## Development
+### Recommended Workflow
 
-### API Endpoints
+For best results:
+1. Start with a simple sketch with clear outlines
+2. Try both models to see which best captures your vision
+3. Experiment with different styles
+4. Use specific descriptions that emphasize important elements
+5. For complex subjects, break down into simpler components
 
-The backend exposes the following API endpoints:
+## Example Results
 
-- `GET /api/styles` - Get available style options
-- `POST /api/generate` - Generate an image from a sketch
-- `GET /api/status/{generation_id}` - Check the status of generation
-- `GET /api/images/{generation_id}` - Get the generated image
+The following examples showcase how the system transforms simple sketches into various styles:
 
-## Configuration
-
-The application can be configured through environment variables in the `.env` file:
-
-- `MODEL_ID` - The Hugging Face model ID (default: "lllyasviel/control_v11p_sd15_scribble")
-- `NUM_INFERENCE_STEPS` - Number of diffusion steps (default: 20)
-- `GUIDANCE_SCALE` - Guidance scale for generation (default: 7.5)
-- `OUTPUT_IMAGE_SIZE` - Size of the output image (default: 512)
-- `DEVICE` - Device to run inference on ("cuda" or "cpu")
+![Car Sketch Results](./docs/images/car_sketch_comparison_grid.png)
+![Cat Sketch Results](./docs/images/cat_sketch_comparison_grid.png)
+![House Sketch Results](./docs/images/house_sketch_comparison_grid.png)
+![Landscape Sketch Results](./docs/images/landscape_sketch_comparison_grid.png)
+![Portrait Sketch Results](./docs/images/portrait_sketch_comparison_grid.png)
 
 ## Limitations
 
-- Generation time depends on hardware capabilities (5-30 seconds on GPU, minutes on CPU)
-- Complex sketches may not be interpreted correctly
-- The system works best with clear, simple line drawings
+- **Sketch Clarity**: The system works best with clear, simple line drawings; complex or ambiguous sketches may produce unexpected results.
+- **Generation Time**: Processing time increases with sketch complexity and varies by hardware.
+- **Style Consistency**: Some styles work better with certain subjects than others. For example, the "anime" style may not always produce consistent anime-style artwork for all sketches.
+- **Unusual Subjects**: The models may struggle with abstract or highly unusual sketches that don't resemble common objects.
+- **Resolution**: Output images are fixed at 512×512 pixels.
+- **Model Limitations**: 
+     - Both models occasionally ignore certain elements in very complex sketches.
+     - Both models sometimes misinterpret the scale or perspective of sketched objects.
 
-## License
 
-This project is open source and available under the MIT License.
+## Advanced Configuration
+
+You can modify the application settings by editing the `.env` file or the `docker-compose.yml` file:
+
+- `MODEL_ID`: The default model to use
+- `NUM_INFERENCE_STEPS`: Number of diffusion steps
+- `GUIDANCE_SCALE`: Controls how closely the output follows the prompt
+- `OUTPUT_IMAGE_SIZE`: Size of the generated image
+- `DEVICE`: Set to "cuda" for GPU or "cpu" for CPU processing
+
+## Troubleshooting
+
+- **Slow Generation**: Try using the ControlNet Scribble model instead of T2I-Adapter
+- **Poor Results**: Simplify your sketch and provide a clear description
+- **Container Errors**: Check Docker logs with `docker-compose logs`
+- **GPU Not Detected**: Ensure NVIDIA drivers and Docker GPU support are correctly installed
 
 ## Acknowledgements
 
 - [Excalidraw](https://excalidraw.com/) for the drawing interface
 - [Hugging Face](https://huggingface.co/) for hosting the pre-trained models
-- [ControlNet](https://github.com/lllyasviel/ControlNet) for the sketch-to-image technology
+- [ControlNet](https://github.com/lllyasviel/ControlNet) & [T2I-Adapter](https://github.com/TencentARC/T2I-Adapter) for the sketch-to-image technology
