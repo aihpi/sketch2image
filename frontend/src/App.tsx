@@ -86,8 +86,12 @@ const App: React.FC = () => {
         )}
         
         <header className="app-header">
-          <h1>Sketch to Image</h1>
-          <p>Draw a sketch and see it transformed into a realistic image</p>
+          <div className="header-content">
+            <div className="title-section">
+              <h1>Sketch to Image</h1>
+              <p>Draw a sketch and see it transformed into a realistic image</p>
+            </div>
+          </div>
         </header>
 
         <main className="app-content">
@@ -138,6 +142,21 @@ const App: React.FC = () => {
             />
           </div>
         </main>
+
+        <footer className="app-footer">
+          <div className="footer-content">
+            <div className="logos-container">
+              <img 
+                src="/logos.jpg" 
+                alt="KI Service Zentrum by Hasso-Plattner-Institut - Gefördert vom Bundesministerium für Bildung und Forschung" 
+                className="footer-logos"
+              />
+            </div>
+            <p className="footer-text">
+              Powered by <a href="https://hpi.de/en/research/hpi-data-center/ai-service-center/" className="footer-link">HPI's AI Service Center</a>
+            </p>
+          </div>
+        </footer>
 
         {isLoading && <LoadingOverlay />}
       </div>

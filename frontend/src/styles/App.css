@@ -12,8 +12,18 @@
   background-color: var(--white);
   color: var(--text-color);
   padding: 2rem 0 1rem;
-  text-align: center;
   border-bottom: none;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  text-align: center;
+}
+
+.title-section {
+  text-align: center;
 }
 
 .app-header h1 {
@@ -21,6 +31,7 @@
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 700;
+  margin-top: 0;
 }
 
 .app-header p {
@@ -28,6 +39,73 @@
   margin: 0 auto;
   opacity: 0.7;
   font-size: 1.1rem;
+  margin-bottom: 0;
+}
+
+/* Footer Styles */
+.app-footer {
+  background-color: var(--white);
+  border-top: 1.8px solid var(--light-gray);
+  padding: 2rem 0;
+  margin-top: 3rem;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  text-align: center;
+}
+
+.footer-logos {
+  height: 120px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  margin-bottom: 1rem;
+}
+
+.footer-text {
+  margin: 0;
+  color: var(--dark-gray);
+  font-size: 0.9rem;
+  font-weight: normal;
+}
+
+.footer-link {
+  color: var(--dark-gray);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: text-decoration-thickness 0.2s ease;
+}
+
+.footer-link:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .app-header h1 {
+    font-size: 2rem;
+  }
+  
+  .app-header p {
+    font-size: 1rem;
+  }
+  
+  .footer-logos {
+    height: 70px;
+  }
+  
+  .app-footer {
+    padding: 1.5rem 0;
+    margin-top: 2rem;
+  }
+  
+  .footer-text {
+    font-size: 0.9rem;
+  }
 }
 
 .app-content {
