@@ -1,3 +1,8 @@
+<div style="background-color: #ffffff; color: #000000; padding: 10px;">
+<img src="frontend\public\logos.jpg" width="192" height="69">
+<h1> Sketch-to-Image Demonstrator
+</div>
+
 # Sketch-to-Image Demonstrator
 
 This project is an interactive tool that transforms simple sketches into detailed images using AI models. Users can draw freehand sketches and convert them into realistic or artistic images in various styles.
@@ -122,3 +127,6 @@ You can modify the application settings by editing the `.env` file or the `docke
 - [Excalidraw](https://excalidraw.com/) for the drawing interface
 - [Hugging Face](https://huggingface.co/) for hosting the pre-trained models
 - [ControlNet](https://github.com/lllyasviel/ControlNet) & [T2I-Adapter](https://github.com/TencentARC/T2I-Adapter) for the sketch-to-image technology
+
+---
+[KI-Servicezentrum Berlin-Brandenburg](http://hpi.de/kisz) is funded by the Federal Ministry of Education and Research under the funding code 01IS22092.
