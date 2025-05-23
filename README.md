@@ -1,9 +1,7 @@
 <div style="background-color: #ffffff; color: #000000; padding: 10px;">
-<img src="frontend\public\logos.jpg" width="192" height="69">
+<img src="frontend\public\logos.jpg" height="120">
 <h1> Sketch-to-Image Demonstrator
 </div>
-
-# Sketch-to-Image Demonstrator
 
 This project is an interactive tool that transforms simple sketches into detailed images using AI models. Users can draw freehand sketches and convert them into realistic or artistic images in various styles.
 
