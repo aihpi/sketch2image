@@ -1,4 +1,3 @@
-// frontend/src/components/Notification.tsx
 import React, { useEffect } from 'react';
 
 interface NotificationProps {
@@ -15,12 +14,10 @@ const Notification: React.FC<NotificationProps> = ({
   duration = 4000
 }) => {
   useEffect(() => {
-    // Auto-close the notification after duration
     const timer = setTimeout(() => {
       onClose();
     }, duration);
     
-    // Clear timeout on unmount
     return () => clearTimeout(timer);
   }, [onClose, duration]);
   

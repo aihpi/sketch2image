@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Excalidraw, exportToBlob } from '@excalidraw/excalidraw';
 import { generateImage } from '../services/api';
 import { Style, Model, GenerationResult } from '../types';
-import { useReset } from '../ResetContext'; // Import the reset hook
+import { useReset } from '../ResetContext';
 
 interface DrawingCanvasProps {
   selectedStyle: Style | null;
@@ -33,21 +33,17 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 }) => {
   const excalidrawRef = useRef<any>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const { triggerReset } = useReset(); // Use the reset context
+  const { triggerReset } = useReset();
 
-  // Force Excalidraw to resize properly
   useEffect(() => {
     const handleResize = () => {
       window.dispatchEvent(new Event('resize'));
     };
 
-    // Force an initial resize
     setTimeout(handleResize, 200);
 
-    // Add listener for window resize
     window.addEventListener('resize', handleResize);
 
-    // Cleanup
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -81,10 +77,8 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     try {
       setIsLoading(true);
 
-      // Get the scene elements and app state
       const appState = excalidrawRef.current.getAppState();
 
-      // Create a modified app state for export
       const exportAppState = {
         ...appState,
         exportWithDarkMode: false,
@@ -92,7 +86,6 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         viewBackgroundColor: '#ffffff',
       };
 
-      // Export the canvas as PNG
       const blob = await exportToBlob({
         elements,
         appState: exportAppState,
@@ -100,13 +93,10 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         files: null,
       });
 
-      // Convert blob to file
       const file = new File([blob], 'sketch.png', { type: 'image/png' });
 
-      // Send to API for processing
       const result = await generateImage(file, selectedStyle.id, selectedModel.id, description);
 
-      // Set the generation result
       setGenerationResult(result);
       
     } catch (error) {
@@ -116,17 +106,13 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     }
   };
 
-  // Reset everything
   const handleReset = () => {
-    // Clear the canvas
     if (excalidrawRef.current) {
       excalidrawRef.current.resetScene();
     }
     
-    // Reset description
     setDescription('');
     
-    // Reset style and model to the first option
     if (styles.length > 0) {
       setSelectedStyle(styles[0]);
     }
@@ -135,10 +121,8 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       setSelectedModel(models[0]);
     }
 
-    // Clear any previous results
     setGenerationResult(null);
     
-    // Trigger reset for other components
     triggerReset();
   };
 

@@ -1,4 +1,3 @@
-// frontend/src/components/ModelSelector.tsx
 import React from 'react';
 import { Model } from '../types';
 import '../styles/ModelSelector.css';

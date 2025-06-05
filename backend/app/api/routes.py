@@ -1,4 +1,3 @@
-# app/api/routes.py
 import os
 import uuid
 from typing import List
@@ -10,7 +9,6 @@ from app.models.image import ImageResponse, StyleOption, ModelOption
 
 router = APIRouter()
 
-# Available style options
 AVAILABLE_STYLES = [
     StyleOption(id="photorealistic", name="Photorealistic", prompt_prefix="a photorealistic image of"),
     StyleOption(id="anime", name="Anime", prompt_prefix="an anime style drawing of"),
@@ -29,7 +27,6 @@ async def get_models():
     """Get available model options for image generation"""
     models = []
     for model_id, model_data in settings.AVAILABLE_MODELS.items():
-        # Include preprocessing info in the description
         description = f"Inference speed: {model_data['inference_speed']}"
         
         models.append(
@@ -54,48 +51,39 @@ async def generate_image(
 ):
     """Generate an image from a sketch with the specified style and model"""
     
-    # Validate style_id
     style = next((s for s in AVAILABLE_STYLES if s.id == style_id), None)
     if not style:
         raise HTTPException(status_code=400, detail=f"Invalid style ID: {style_id}")
     
-    # Validate model_id or use default
     if not model_id:
         model_id = settings.DEFAULT_MODEL_ID
     
     if model_id not in settings.AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail=f"Invalid model ID: {model_id}")
     
-    # Get model info
     model_info = settings.AVAILABLE_MODELS[model_id]
     
-    # Generate a unique ID for this generation
     generation_id = str(uuid.uuid4())
     
-    # Create file paths for input and output
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     os.makedirs(settings.OUTPUT_DIR, exist_ok=True)
     
     sketch_path = os.path.join(settings.UPLOAD_DIR, f"{generation_id}_sketch.png")
     output_path = os.path.join(settings.OUTPUT_DIR, f"{generation_id}_output.png")
     
-    # Save uploaded sketch to file
     with open(sketch_path, "wb") as f:
         content = await sketch_file.read()
         f.write(content)
     
     try:
-        # Build the prompt based on style and optional description
         if description:
             prompt = f"{description}, {style.name}, best quality, extremely detailed"
         else:
             prompt = f"a scene, {style.name}, best quality, extremely detailed"
         
-        # Use model's default negative prompt if available
         negative_prompt = model_info.get("config", {}).get("default_negative_prompt", 
                                                         "low quality, bad anatomy, worst quality, low resolution")
         
-        # Generate the image (this will run in the background)
         background_tasks.add_task(
             generate_image_from_sketch,
             sketch_path=sketch_path,
@@ -105,7 +93,6 @@ async def generate_image(
             negative_prompt=negative_prompt,
         )
         
-        # Return response with generation ID
         return ImageResponse(
             generation_id=generation_id,
             status="processing",

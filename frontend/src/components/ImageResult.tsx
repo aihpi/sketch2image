@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { GenerationResult } from '../types';
 import { checkGenerationStatus } from '../services/api';
 import '../styles/ImageResult.css';
-import { useReset } from '../ResetContext'; // Import the reset hook
+import { useReset } from '../ResetContext';
 
 interface ImageResultProps {
   generationResult: GenerationResult | null;
@@ -17,9 +17,8 @@ const ImageResult: React.FC<ImageResultProps> = ({
 }) => {
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
-  const { resetTrigger } = useReset(); // Use the reset context
+  const { resetTrigger } = useReset();
 
-  // Reset result when reset is triggered
   useEffect(() => {
     if (resetTrigger > 0) {
       setResult(null);
@@ -27,19 +26,16 @@ const ImageResult: React.FC<ImageResultProps> = ({
     }
   }, [resetTrigger, setGenerationResult]);
 
-  // Update local state when parent passes a new generation result
   useEffect(() => {
     if (generationResult) {
       setResult(generationResult);
       
-      // If status is processing, start polling
       if (generationResult.status === 'processing') {
         startStatusPolling(generationResult.generation_id);
       }
     }
   }, [generationResult]);
   
-  // Clean up interval on unmount
   useEffect(() => {
     return () => {
       if (pollingInterval) {
@@ -48,23 +44,18 @@ const ImageResult: React.FC<ImageResultProps> = ({
     };
   }, [pollingInterval]);
   
-  // Start polling for status updates
   const startStatusPolling = (generationId: string) => {
-    // Clear any existing polling
     if (pollingInterval) {
       clearInterval(pollingInterval);
     }
     
-    // Set loading state
     setIsLoading(true);
     
-    // Start polling every 2 seconds
     const interval = setInterval(async () => {
       try {
         const updatedResult = await checkGenerationStatus(generationId);
         setResult(updatedResult);
         
-        // If generation is complete, stop polling
         if (updatedResult.status === 'completed') {
           clearInterval(interval);
           setPollingInterval(null);
@@ -81,17 +72,14 @@ const ImageResult: React.FC<ImageResultProps> = ({
     setPollingInterval(interval);
   };
 
-  // Handle direct image download
   const handleDownload = () => {
     if (result?.image_url) {
       const imageUrl = `${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${result.image_url}`;
       
-      // Create a link element
       const link = document.createElement('a');
       link.href = imageUrl;
       link.download = `generated-image-${new Date().getTime()}.png`;
       
-      // Fetch the image as blob and trigger download
       fetch(imageUrl)
         .then(response => response.blob())
         .then(blob => {
@@ -108,7 +96,6 @@ const ImageResult: React.FC<ImageResultProps> = ({
     }
   };
   
-  // If no result yet, show placeholder
   if (!result) {
     return (
       <div className="image-result empty">
@@ -120,7 +107,6 @@ const ImageResult: React.FC<ImageResultProps> = ({
     );
   }
   
-  // If processing, show status
   if (result.status === 'processing') {
     return (
       <div className="image-result processing">
@@ -132,7 +118,6 @@ const ImageResult: React.FC<ImageResultProps> = ({
     );
   }
   
-  // If completed, show the image
   return (
     <div className="image-result completed">
       {result.image_url && (

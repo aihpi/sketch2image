@@ -1,4 +1,3 @@
-/* frontend/src/styles/StyleSelector.css */
 .style-selector {
   display: flex;
   flex-direction: column;
@@ -20,7 +19,7 @@
   cursor: pointer;
   transition: all 0.2s;
   appearance: menulist;
-  padding-right: 30px; /* Gives space for the dropdown arrow */
+  padding-right: 30px;
 }
 
 .style-selector select:hover {

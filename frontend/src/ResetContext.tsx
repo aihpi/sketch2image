@@ -11,7 +11,7 @@ export const ResetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [resetTrigger, setResetTrigger] = useState(0);
 
   const triggerReset = () => {
-    setResetTrigger(prev => prev + 1); // Increment to trigger resets
+    setResetTrigger(prev => prev + 1);
   };
 
   return (

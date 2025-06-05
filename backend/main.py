@@ -6,7 +6,6 @@ from app.core.config import settings
 
 app = FastAPI(title="Sketch2Image API")
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -15,7 +14,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routes
 app.include_router(api_router, prefix="/api")
 
 if __name__ == "__main__":

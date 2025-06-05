@@ -1,4 +1,3 @@
-// frontend/src/components/StyleSelector.tsx
 import React from 'react';
 import { Style } from '../types';
 import '../styles/StyleSelector.css';

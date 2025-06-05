@@ -9,8 +9,8 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./frontend:/app  # For automatic frontend changes
-      - /app/node_modules # Preserve node_modules
+      - ./frontend:/app 
+      - /app/node_modules 
 
   backend:
     build:
@@ -22,17 +22,17 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - DEBUG_MODE=true
-      - DEFAULT_MODEL_ID=t2i_adapter_sdxl  # Default to T2I Adapter
-      - NUM_INFERENCE_STEPS=40  # 40 steps for higher quality
+      - DEFAULT_MODEL_ID=t2i_adapter_sdxl  
+      - NUM_INFERENCE_STEPS=40  
       - GUIDANCE_SCALE=7.5
       - OUTPUT_IMAGE_SIZE=512
       - FRONTEND_URL=http://localhost:3000
-      - USE_PIDINET_PREPROCESSING=true  # Enable PidiNet preprocessing
+      - USE_PIDINET_PREPROCESSING=true  
     volumes:
-      - ./backend:/app  # For live code changes
+      - ./backend:/app  
       - ./backend/uploads:/app/uploads
       - ./backend/outputs:/app/outputs
-      - ./backend/preprocessed:/app/preprocessed  # For debugging preprocessed images
+      - ./backend/preprocessed:/app/preprocessed  
       - huggingface_cache:/root/.cache/huggingface
     deploy:
       resources:

@@ -1,10 +1,8 @@
-// frontend/src/services/api.ts
 import axios from 'axios';
 import { Style, Model, GenerationResult } from '../types';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
-// Create axios instance
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -12,9 +10,6 @@ const api = axios.create({
   },
 });
 
-/**
- * Fetch available style options from the API
- */
 export const fetchStyles = async (): Promise<Style[]> => {
   try {
     const response = await api.get('/styles');
@@ -25,9 +20,6 @@ export const fetchStyles = async (): Promise<Style[]> => {
   }
 };
 
-/**
- * Fetch available model options from the API
- */
 export const fetchModels = async (): Promise<Model[]> => {
   try {
     const response = await api.get('/models');
@@ -38,9 +30,6 @@ export const fetchModels = async (): Promise<Model[]> => {
   }
 };
 
-/**
- * Upload a sketch and generate an image
- */
 export const generateImage = async (
   sketchFile: File,
   styleId: string,
@@ -48,7 +37,6 @@ export const generateImage = async (
   description?: string
 ): Promise<GenerationResult> => {
   try {
-    // Create form data for file upload
     const formData = new FormData();
     formData.append('sketch_file', sketchFile);
     formData.append('style_id', styleId);
@@ -61,7 +49,6 @@ export const generateImage = async (
       formData.append('description', description);
     }
 
-    // Set proper headers for form data
     const response = await api.post('/generate', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -75,9 +62,6 @@ export const generateImage = async (
   }
 };
 
-/**
- * Check the status of an image generation request
- */
 export const checkGenerationStatus = async (generationId: string): Promise<GenerationResult> => {
   try {
     const response = await api.get(`/status/${generationId}`);

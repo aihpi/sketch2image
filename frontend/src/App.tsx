@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import './styles/App.css';
 
-// Components
 import DrawingCanvas from './components/DrawingCanvas';
 import StyleSelector from './components/StyleSelector';
 import ModelSelector from './components/ModelSelector';
 import ImageResult from './components/ImageResult';
 import LoadingOverlay from './components/LoadingOverlay';
 import Notification from './components/Notification';
-import { ResetProvider } from './ResetContext'; // Import the context
+import { ResetProvider } from './ResetContext';
 
-// Services
 import { fetchStyles, fetchModels } from './services/api';
 
-// Types
 import { Style, Model, GenerationResult } from './types';
 
 const App: React.FC = () => {
@@ -34,7 +31,6 @@ const App: React.FC = () => {
     type: 'info'
   });
 
-  // Show notification function
   const showNotification = (message: string, type: 'error' | 'info' | 'success') => {
     setNotification({
       show: true,
@@ -43,23 +39,19 @@ const App: React.FC = () => {
     });
   };
 
-  // Close notification function
   const closeNotification = () => {
     setNotification(prev => ({ ...prev, show: false }));
   };
 
-  // Fetch available styles and models on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch styles
         const stylesData = await fetchStyles();
         setStyles(stylesData);
         if (stylesData.length > 0) {
           setSelectedStyle(stylesData[0]);
         }
 
-        // Fetch models
         const modelsData = await fetchModels();
         setModels(modelsData);
         if (modelsData.length > 0) {

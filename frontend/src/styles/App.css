@@ -1,4 +1,3 @@
-/* frontend/src/styles/App.css - Main layout styles */
 .app {
   display: flex;
   flex-direction: column;
@@ -42,7 +41,6 @@
   margin-bottom: 0;
 }
 
-/* Footer Styles */
 .app-footer {
   background-color: var(--white);
   border-top: 1.8px solid var(--light-gray);
@@ -84,7 +82,6 @@
   text-decoration-thickness: 2px;
 }
 
-/* Responsive design for smaller screens */
 @media (max-width: 768px) {
   .app-header h1 {
     font-size: 2rem;
@@ -138,7 +135,7 @@
   font-size: 1.2rem;
   color: var(--text-color);
   font-weight: 600;
-  display: none; /* Hide headings for more minimalist look */
+  display: none;
 }
 
 .style-controls {
@@ -208,8 +205,6 @@
   overflow: hidden;
 }
 
-/* Notification styling */
-/* Professional Notification styling - Add this to your App.css */
 .notification {
   position: fixed;
   top: 20px;
