@@ -6,7 +6,7 @@ node_modules/
 /dist
 
 /coverage
-
+kubernetes/secrets.yaml
 .env
 .env.local
 .env.development.local

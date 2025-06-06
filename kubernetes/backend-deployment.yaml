@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      imagePullSecrets:
+      - name: ghcr-secret
+      containers:
+      - name: backend
+        image: ghcr.io/aihpi/sketch2image-backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DEVICE
+          value: "cuda"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8000"
+        - name: DEBUG_MODE
+          value: "true"
+        - name: DEFAULT_MODEL_ID
+          value: "t2i_adapter_sdxl"
+        - name: NUM_INFERENCE_STEPS
+          value: "40"
+        - name: GUIDANCE_SCALE
+          value: "7.5"
+        - name: OUTPUT_IMAGE_SIZE
+          value: "512"
+        - name: FRONTEND_URL
+          value: "http://frontend-service:3000"
+        - name: USE_PIDINET_PREPROCESSING
+          value: "true"
+        volumeMounts:
+        - name: uploads-storage
+          mountPath: /app/uploads
+        - name: outputs-storage
+          mountPath: /app/outputs
+        - name: preprocessed-storage
+          mountPath: /app/preprocessed
+        - name: huggingface-cache
+          mountPath: /root/.cache/huggingface
+      volumes:
+      - name: uploads-storage
+        persistentVolumeClaim:
+          claimName: backend-uploads-pvc
+      - name: outputs-storage
+        persistentVolumeClaim:
+          claimName: backend-outputs-pvc
+      - name: preprocessed-storage
+        persistentVolumeClaim:
+          claimName: backend-preprocessed-pvc
+      - name: huggingface-cache
+        persistentVolumeClaim:
+          claimName: huggingface-cache-pvc
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: NodePort
