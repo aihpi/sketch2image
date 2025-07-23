@@ -35,18 +35,6 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { triggerReset } = useReset();
 
-  useEffect(() => {
-    const handleResize = () => {
-      window.dispatchEvent(new Event('resize'));
-    };
-
-    setTimeout(handleResize, 200);
-
-    window.addEventListener('resize', handleResize);
-
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const handleGenerateImage = async () => {
     if (!excalidrawRef.current) {
       showNotification('Canvas is not initialized', 'error');
