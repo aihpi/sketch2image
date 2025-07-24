@@ -250,19 +250,27 @@ def generate_and_save_image(
     
     params = {
         "prompt": full_prompt,
-        "negative_prompt": negative_prompt,
         "image": sketch_image,
         "num_inference_steps": num_inference_steps,
         "guidance_scale": guidance_scale,
         "generator": generator
     }
-    
+
+    if model_id != "flux_canny":
+        params["negative_prompt"] = negative_prompt
+
+    model_info = settings.AVAILABLE_MODELS[model_id]
+    config = model_info.get("config", {})
+
     if model_id == "t2i_adapter_sdxl":
-        model_info = settings.AVAILABLE_MODELS[model_id]
-        config = model_info.get("config", {})
         params["adapter_conditioning_scale"] = config.get("adapter_conditioning_scale", 0.9)
         params["adapter_conditioning_factor"] = config.get("adapter_conditioning_factor", 0.9)
     
+    elif model_id == "flux_canny":
+        params["control_image"] = params.pop("image")
+        params["height"] = config.get("output_height", 1024)
+        params["width"] = config.get("output_width", 1024)
+
     start_time = time.time()
     output = pipe(**params)
     generation_time = time.time() - start_time

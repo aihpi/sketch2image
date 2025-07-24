@@ -77,7 +77,7 @@ async def generate_image(
     
     try:
         if description:
-            prompt = f"{description}, {style.name}, best quality, extremely detailed"
+            prompt = f"{description}, {style.name} style, best quality, extremely detailed"
         else:
             prompt = f"a scene, {style.name}, best quality, extremely detailed"
         

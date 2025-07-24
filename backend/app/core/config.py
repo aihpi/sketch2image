@@ -68,6 +68,31 @@ class Settings:
             "scheduler": "DDIMScheduler",
             "default_negative_prompt": "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
         }
+    },
+    "flux_canny": {
+        "name": "FLUX.1-Canny-dev",
+        "huggingface_id": "black-forest-labs/FLUX.1-Canny-dev",
+        "base_model": "black-forest-labs/FLUX.1-Canny-dev",
+        "inference_speed": "Slow (30-60s on GPU)",
+        "recommended_for": ["High-quality sketches", "Premium output", "Complex scenes"],
+        "preprocessing": {
+            "type": "canny_detector",
+            "detect_resolution": 1024,
+            "image_resolution": 1024,
+            "low_threshold": 50,
+            "high_threshold": 200,
+        },
+        "config": {
+            "pipeline_type": "FluxControlPipeline",
+            "model_type": "FluxControl",
+            "needs_safety_checker": False,
+            "num_inference_steps": 50,
+            "guidance_scale": 30.0,
+            "output_height": 1024,
+            "output_width": 1024,
+            "torch_dtype": "bfloat16",
+            "default_negative_prompt": ""
+        }
     }
 }
     

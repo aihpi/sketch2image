@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import torch
 from PIL import Image, ImageOps, ImageEnhance
 import numpy as np
@@ -8,12 +9,14 @@ from diffusers import (
     DDIMScheduler,
     StableDiffusionXLAdapterPipeline,
     T2IAdapter,
-    AutoencoderKL
+    AutoencoderKL,
+    FluxControlPipeline
 )
 from diffusers.utils import load_image
 import torchvision.transforms as T
 from app.core.config import settings
 
+load_dotenv()
 model_cache = {}
 
 def simple_sketch_inverter(image, target_resolution=768):
@@ -68,7 +71,12 @@ def load_model_pipeline(model_id):
     
     is_cuda_available = torch.cuda.is_available()
     device = settings.DEVICE if is_cuda_available and settings.DEVICE == 'cuda' else 'cpu'
-    torch_dtype = torch.float16 if device == "cuda" else torch.float32
+    
+    # Set torch_dtype based on model requirements
+    if model_id == "flux_canny":
+        torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
+    else:
+        torch_dtype = torch.float16 if device == "cuda" else torch.float32
    
     print(f"Device set to: {device}")
     
@@ -116,12 +124,18 @@ def load_model_pipeline(model_id):
                 torch_dtype=torch_dtype,
                 variant="fp16" if device == "cuda" else None
             )
+            
+        elif model_id == "flux_canny":
+            pipeline = FluxControlPipeline.from_pretrained(
+                huggingface_id,
+                torch_dtype=torch_dtype,
+            )
         
         pipeline = pipeline.to(device)
         
         if device == "cuda":
             try:
-                if hasattr(pipeline, "enable_xformers_memory_efficient_attention"):
+                if model_id != "flux_canny" and hasattr(pipeline, "enable_xformers_memory_efficient_attention"):
                     pipeline.enable_xformers_memory_efficient_attention()
                     print("Enabled xformers memory efficient attention")
                 else:
@@ -195,9 +209,12 @@ async def generate_image_from_sketch(
         
         params = {
             "prompt": prompt,
-            "negative_prompt": negative_prompt,
             "image": sketch_image,
         }
+        
+        # Add negative prompt only for models that support it
+        if negative_prompt and model_id != "flux_canny":
+            params["negative_prompt"] = negative_prompt
         
         num_inference_steps = config.get("num_inference_steps", 20)
         guidance_scale = config.get("guidance_scale", 7.5)
@@ -208,6 +225,10 @@ async def generate_image_from_sketch(
         if model_id == "t2i_adapter_sdxl":
             params["adapter_conditioning_scale"] = config.get("adapter_conditioning_scale", 0.9)
             params["adapter_conditioning_factor"] = config.get("adapter_conditioning_factor", 0.9)
+        elif model_id == "flux_canny":
+            params["height"] = config.get("output_height", 1024)
+            params["width"] = config.get("output_width", 1024)
+            params["control_image"] = params.pop("image")
         
         print(f"Generating with model {model_id} using parameters: {params}")
         

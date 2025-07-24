@@ -25,10 +25,10 @@ echo "=== Setting up Backend Environment ==="
 echo "Creating conda environment: sketch2image-backend"
 
 # Remove existing environment if it exists
-conda env remove -n sketch2image-backend -y 2>/dev/null || true
+# conda env remove -n sketch2image-backend -y 2>/dev/null || true
 
 # Create new environment
-conda create -n sketch2image-backend python=3.10 -y
+conda create -n sketch2image-backend-2 python=3.10 -y
 if [ $? -ne 0 ]; then
     echo "Error: Failed to create backend conda environment"
     exit 1
@@ -39,7 +39,7 @@ echo "✓ Created sketch2image-backend environment"
 # Activate backend environment and install dependencies
 echo "Installing backend dependencies..."
 source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate sketch2image-backend
+conda activate sketch2image-backend-2
 
 # Install system-level dependencies that would be in the Dockerfile
 echo "Installing system dependencies..."
