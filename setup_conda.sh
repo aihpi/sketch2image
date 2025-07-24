@@ -25,10 +25,10 @@ echo "=== Setting up Backend Environment ==="
 echo "Creating conda environment: sketch2image-backend"
 
 # Remove existing environment if it exists
-# conda env remove -n sketch2image-backend -y 2>/dev/null || true
+conda env remove -n sketch2image-backend -y 2>/dev/null || true
 
 # Create new environment
-conda create -n sketch2image-backend-2 python=3.10 -y
+conda create -n sketch2image-backend python=3.10 -y
 if [ $? -ne 0 ]; then
     echo "Error: Failed to create backend conda environment"
     exit 1
@@ -39,22 +39,21 @@ echo "✓ Created sketch2image-backend environment"
 # Activate backend environment and install dependencies
 echo "Installing backend dependencies..."
 source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate sketch2image-backend-2
+conda activate sketch2image-backend
 
-# Install system-level dependencies that would be in the Dockerfile
+# Install system-level dependencies
 echo "Installing system dependencies..."
-# Note: These would normally be installed via apt in Docker, 
-# but in conda we'll use conda packages where possible
 conda install -y \
     requests \
     urllib3 \
     certifi
 
-# Install PyTorch with CUDA 11.8 support (matching Dockerfile)
+# Install PyTorch with CUDA 11.8 support
 echo "Installing PyTorch with CUDA 11.8 support (matching Dockerfile)..."
 if command -v nvidia-smi &> /dev/null; then
     echo "NVIDIA GPU detected - installing CUDA 11.8 version"
     pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu118
+    pip install --no-cache-dir xformers --index-url https://download.pytorch.org/whl/cu118
     DEVICE_SETTING="cuda"
 else
     echo "No NVIDIA GPU detected - installing CPU version"
@@ -63,24 +62,6 @@ else
 fi
 
 echo "✓ PyTorch installed"
-
-# Install HuggingFace and Diffusers packages (exact versions from Dockerfile)
-echo "Installing HuggingFace and Diffusers packages..."
-pip install --no-cache-dir \
-    huggingface_hub==0.19.4 \
-    transformers==4.35.2 \
-    diffusers==0.23.1 \
-    accelerate==0.23.0
-
-echo "✓ AI/ML packages installed"
-
-# Install OpenCV and safetensors (from Dockerfile)
-echo "Installing OpenCV and safetensors..."
-pip install --no-cache-dir \
-    opencv-python-headless \
-    safetensors==0.3.2
-
-echo "✓ OpenCV and safetensors installed"
 
 # Install remaining requirements from requirements.txt
 echo "Installing remaining requirements from requirements.txt..."
@@ -120,7 +101,7 @@ conda deactivate
 # Remove existing environment if it exists
 conda env remove -n sketch2image-frontend -y 2>/dev/null || true
 
-# Create frontend environment (based on working solution)
+# Create frontend environment
 echo "Creating conda environment: sketch2image-frontend"
 conda create -n sketch2image-frontend -y
 if [ $? -ne 0 ]; then
@@ -252,29 +233,6 @@ chmod +x "$PROJECT_DIR/start_frontend.sh"
 
 echo "✓ Startup scripts created"
 
-# Create test script
-cat > "$PROJECT_DIR/test_setup.sh" << 'EOF'
-#!/bin/bash
-echo "Testing setup..."
-
-# Test backend environment
-echo "Testing backend environment..."
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate sketch2image-backend
-python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
-python -c "import diffusers, transformers; print('✓ All backend packages imported successfully')"
-
-# Test frontend environment
-echo "Testing frontend environment..."
-conda activate sketch2image-frontend
-node --version
-npm --version
-
-echo "✓ Setup test completed successfully"
-EOF
-
-chmod +x "$PROJECT_DIR/test_setup.sh"
-
 echo ""
 echo "===== Setup Complete! ====="
 echo ""
@@ -286,7 +244,6 @@ echo "Available scripts:"
 echo "  - ./start_app.sh        : Start both backend and frontend"
 echo "  - ./start_backend.sh    : Start only backend"
 echo "  - ./start_frontend.sh   : Start only frontend"
-echo "  - ./test_setup.sh       : Test the installation"
 echo ""
 echo "To start the application:"
 echo "  ./start_app.sh"

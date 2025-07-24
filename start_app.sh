@@ -1,7 +1,11 @@
 #!/bin/bash
+
 echo "Starting Sketch2Image Application..."
+
+# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Function to cleanup processes
 cleanup() {
     echo ""
     echo "Shutting down services..."
@@ -14,6 +18,7 @@ cleanup() {
     exit 0
 }
 
+# Set trap for cleanup
 trap cleanup SIGINT SIGTERM
 
 # Start backend
@@ -24,9 +29,11 @@ conda activate sketch2image-backend
 python main.py &
 BACKEND_PID=$!
 
+# Wait for backend to start
 echo "Waiting for backend to initialize..."
 sleep 5
 
+# Check if backend is running
 if ! kill -0 $BACKEND_PID 2>/dev/null; then
     echo "Error: Backend failed to start"
     exit 1
@@ -45,5 +52,7 @@ echo "- Backend: http://localhost:8000/api"
 echo "- Frontend: http://localhost:3000"
 echo ""
 echo "Press Ctrl+C to stop both services"
+echo ""
 
+# Wait for processes
 wait $BACKEND_PID $FRONTEND_PID
