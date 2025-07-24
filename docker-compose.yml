@@ -1,46 +1,43 @@
+# docker-compose.yml
+# A simple, single configuration for running on a GPU-enabled machine.
+
 services:
   frontend:
-    build:
-      context: ./frontend
+    build: ./frontend
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Prevents host node_modules from overwriting the container's
     environment:
-      - REACT_APP_API_URL=http://localhost:8000/api
+      # This helps hot-reloading work reliably on Windows
+      - CHOKIDAR_USEPOLLING=true
+      # This value will be pulled from the .env file
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app 
-      - /app/node_modules 
 
   backend:
-    build:
-      context: ./backend
+    build: ./backend
     ports:
       - "8000:8000"
-    environment:
-      - DEVICE=cuda
-      - HOST=0.0.0.0
-      - PORT=8000
-      - DEBUG_MODE=true
-      - DEFAULT_MODEL_ID=t2i_adapter_sdxl  
-      - NUM_INFERENCE_STEPS=40  
-      - GUIDANCE_SCALE=7.5
-      - OUTPUT_IMAGE_SIZE=512
-      - FRONTEND_URL=http://localhost:3000
-      - USE_PIDINET_PREPROCESSING=true  
     volumes:
-      - ./backend:/app  
+      - ./backend:/app
       - ./backend/uploads:/app/uploads
       - ./backend/outputs:/app/outputs
-      - ./backend/preprocessed:/app/preprocessed  
+      - ./backend/preprocessed:/app/preprocessed
       - huggingface_cache:/root/.cache/huggingface
+    # This section tells Docker to use your NVIDIA GPU
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              count: all
               capabilities: [gpu]
+    # Loads all variables from the .env file
+    env_file:
+      - .env
 
 volumes:
-  huggingface_cache:
+  huggingface_cache: {}
