@@ -87,6 +87,9 @@ FRONTEND_URL=http://localhost:3000
 UPLOAD_DIR=uploads
 OUTPUT_DIR=outputs
 PREPROCESSED_DIR=preprocessed
+
+# -- Hugging Face Token --
+HUGGING_FACE_HUB_TOKEN=YOUR_HUGGING_FACE_TOKEN_HERE
 EOF
 
 echo "✓ Backend configuration created"
