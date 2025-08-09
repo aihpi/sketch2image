@@ -17,23 +17,39 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({
     return <div className="style-selector loading">Loading styles...</div>;
   }
 
+  const getStyleIcon = (styleId: string) => {
+    switch (styleId) {
+      case 'photorealistic':
+        return '📷';
+      case 'anime':
+        return '✨';
+      case 'oil_painting':
+        return '🎨';
+      case 'watercolor':
+        return '🌊';
+      case 'sketch':
+        return '✏️';
+      default:
+        return '🎭';
+    }
+  };
+
   return (
     <div className="style-selector">
-      <label htmlFor="style-select">Choose an output style:</label>
-      <select
-        id="style-select"
-        value={selectedStyle?.id || ''}
-        onChange={(e) => {
-          const selected = styles.find(style => style.id === e.target.value) || null;
-          setSelectedStyle(selected);
-        }}
-      >
+      <label className="selector-label">Style</label>
+      <div className="style-pills">
         {styles.map((style) => (
-          <option key={style.id} value={style.id}>
-            {style.name}
-          </option>
+          <button
+            key={style.id}
+            className={`style-pill ${selectedStyle?.id === style.id ? 'selected' : ''}`}
+            onClick={() => setSelectedStyle(style)}
+            type="button"
+          >
+            <span className="style-emoji">{getStyleIcon(style.id)}</span>
+            <span className="style-text">{style.name}</span>
+          </button>
         ))}
-      </select>
+      </div>
     </div>
   );
 };

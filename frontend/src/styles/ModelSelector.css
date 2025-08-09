@@ -4,30 +4,121 @@
   gap: 0.5rem;
 }
 
-.model-selector label {
-  font-weight: 500;
-  color: var(--dark-gray);
-  font-size: 0.9rem;
+.selector-label {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 0.875rem;
+  margin: 0;
 }
 
-.model-selector select {
-  padding: 12px;
-  border: 1px solid var(--medium-gray);
-  border-radius: 4px;
+.model-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.model-pill {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--medium-gray);
+  border-radius: 12px;
   background-color: var(--white);
-  font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s;
-  appearance: menulist;
-  padding-right: 30px;
+  transition: all 0.15s ease;
+  text-align: left;
+  width: 100%;
 }
 
-.model-selector select:hover {
-  border-color: var(--dark-gray);
+.model-pill:hover {
+  border-color: var(--primary-color);
+  background-color: var(--light-gray);
+}
+
+.model-pill.selected {
+  border-color: var(--primary-color);
+  background-color: var(--primary-color);
+  color: var(--white);
+}
+
+.model-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.model-indicator {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.model-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.model-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.model-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.model-tag {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  background-color: var(--light-gray);
+  color: var(--dark-gray);
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.model-pill.selected .model-tag {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .model-selector.loading {
-  padding: 10px;
+  padding: 0.75rem;
   color: var(--dark-gray);
   font-style: italic;
+  text-align: center;
+  background-color: var(--light-gray);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .model-pill {
+    padding: 0.625rem 0.875rem;
+  }
+  
+  .model-content {
+    gap: 0.625rem;
+  }
+  
+  .model-indicator {
+    font-size: 1.125rem;
+  }
+  
+  .model-name {
+    font-size: 0.8rem;
+  }
+  
+  .model-tag {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.35rem;
+  }
 }
