@@ -43,9 +43,11 @@
   color: var(--white);
 }
 
-.style-emoji {
-  font-size: 1rem;
-  line-height: 1;
+.style-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .style-text {
@@ -74,11 +76,37 @@
     font-size: 0.75rem;
   }
   
-  .style-emoji {
-    font-size: 0.9rem;
+  .style-icon svg {
+    width: 14px;
+    height: 14px;
   }
   
   .style-text {
     font-size: 0.75rem;
   }
+}
+/* Add this to your CSS to make external SVGs change color */
+
+/* Normal state - dark icons */
+.style-icon img,
+.model-indicator img {
+  filter: brightness(0) saturate(100%);
+  transition: filter 0.15s ease;
+}
+
+/* Selected state - white icons */
+.style-pill.selected .style-icon img,
+.model-pill.selected .model-indicator img {
+  filter: brightness(0) saturate(100%) invert(1);
+}
+
+/* Hover state */
+.style-pill:hover .style-icon img,
+.model-pill:hover .model-indicator img {
+  filter: brightness(0) saturate(100%);
+}
+
+.style-pill.selected:hover .style-icon img,
+.model-pill.selected:hover .model-indicator img {
+  filter: brightness(0) saturate(100%) invert(1);
 }

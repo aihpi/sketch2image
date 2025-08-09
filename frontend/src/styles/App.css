@@ -148,6 +148,7 @@
   border-radius: 8px;
 }
 
+/* Modern Description Input */
 .description-input {
   display: flex;
   flex-direction: column;
@@ -155,21 +156,37 @@
 }
 
 .description-input label {
-  font-weight: 500;
-  color: var(--dark-gray);
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 0.875rem;
+  margin: 0;
 }
 
 .description-input input {
-  padding: 12px;
-  border: 1px solid var(--medium-gray);
-  border-radius: 4px;
-  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--medium-gray);
+  border-radius: 12px;
+  background-color: var(--white);
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.description-input input::placeholder {
+  color: var(--dark-gray);
+  opacity: 0.6;
+}
+
+.description-input input:hover {
+  border-color: var(--primary-color);
+  background-color: var(--light-gray);
 }
 
 .description-input input:focus {
-  outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 1px var(--primary-color);
+  background-color: var(--white);
+  box-shadow: 0 0 0 3px rgba(51, 51, 51, 0.1);
 }
 
 .canvas-controls {
@@ -292,5 +309,13 @@
   to {
     transform: translate(-50%, 0);
     opacity: 1;
+  }
+}
+
+/* Mobile responsive for description input */
+@media (max-width: 768px) {
+  .description-input input {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8rem;
   }
 }

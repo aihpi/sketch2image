@@ -1,5 +1,6 @@
 import React from 'react';
 import { Model } from '../types';
+import Icon from './Icon';
 import '../styles/ModelSelector.css';
 
 interface ModelSelectorProps {
@@ -17,13 +18,13 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
     return <div className="model-selector loading">Loading models...</div>;
   }
 
-  const getModelInfo = (model: Model) => {
+  const getModelIconName = (model: Model) => {
     if (model.inference_speed.includes('Fast')) {
-      return { indicator: '⚡' };
+      return 'lightning';
     } else if (model.inference_speed.includes('Medium')) {
-      return { indicator: '🎯' };
+      return 'target';
     } else {
-      return { indicator: '💎' };
+      return 'diamond';
     }
   };
 
@@ -31,31 +32,30 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
     <div className="model-selector">
       <label className="selector-label">AI Model</label>
       <div className="model-pills">
-        {models.map((model) => {
-          const info = getModelInfo(model);
-          return (
-            <button
-              key={model.id}
-              className={`model-pill ${selectedModel?.id === model.id ? 'selected' : ''}`}
-              onClick={() => setSelectedModel(model)}
-              type="button"
-            >
-              <div className="model-content">
-                <span className="model-indicator">{info.indicator}</span>
-                <div className="model-text">
-                  <span className="model-name">{model.name}</span>
-                  <div className="model-tags">
-                    {model.recommended_for.map((tag, index) => (
-                      <span key={index} className="model-tag">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+        {models.map((model) => (
+          <button
+            key={model.id}
+            className={`model-pill ${selectedModel?.id === model.id ? 'selected' : ''}`}
+            onClick={() => setSelectedModel(model)}
+            type="button"
+          >
+            <div className="model-content">
+              <div className="model-indicator">
+                <Icon name={getModelIconName(model)} size={18} />
+              </div>
+              <div className="model-text">
+                <span className="model-name">{model.name}</span>
+                <div className="model-tags">
+                  {model.recommended_for.map((tag, index) => (
+                    <span key={index} className="model-tag">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               </div>
-            </button>
-          );
-        })}
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   );

@@ -49,8 +49,9 @@
 }
 
 .model-indicator {
-  font-size: 1.25rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
@@ -109,8 +110,9 @@
     gap: 0.625rem;
   }
   
-  .model-indicator {
-    font-size: 1.125rem;
+  .model-indicator svg {
+    width: 16px;
+    height: 16px;
   }
   
   .model-name {

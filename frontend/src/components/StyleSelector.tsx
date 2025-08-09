@@ -1,5 +1,6 @@
 import React from 'react';
 import { Style } from '../types';
+import Icon from './Icon';
 import '../styles/StyleSelector.css';
 
 interface StyleSelectorProps {
@@ -17,20 +18,20 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({
     return <div className="style-selector loading">Loading styles...</div>;
   }
 
-  const getStyleIcon = (styleId: string) => {
+  const getStyleIconName = (styleId: string) => {
     switch (styleId) {
       case 'photorealistic':
-        return '📷';
+        return 'camera';
       case 'anime':
-        return '✨';
+        return 'sparkle';
       case 'oil_painting':
-        return '🎨';
+        return 'paintbrush';
       case 'watercolor':
-        return '🌊';
+        return 'droplet';
       case 'sketch':
-        return '✏️';
+        return 'pencil';
       default:
-        return '🎭';
+        return 'image';
     }
   };
 
@@ -45,7 +46,9 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({
             onClick={() => setSelectedStyle(style)}
             type="button"
           >
-            <span className="style-emoji">{getStyleIcon(style.id)}</span>
+            <div className="style-icon">
+              <Icon name={getStyleIconName(style.id)} size={16} />
+            </div>
             <span className="style-text">{style.name}</span>
           </button>
         ))}
