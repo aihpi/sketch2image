@@ -3,6 +3,7 @@ import { Excalidraw, exportToBlob } from '@excalidraw/excalidraw';
 import { generateImage } from '../services/api';
 import { Style, Model, GenerationResult } from '../types';
 import { useReset } from '../ResetContext';
+import Icon from './Icon';
 
 interface DrawingCanvasProps {
   selectedStyle: Style | null;
@@ -153,12 +154,14 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           className="generate-button"
           onClick={handleGenerateImage}
         >
+          <Icon name="generate" size={16} />
           Generate Image
         </button>
         <button 
-          className="clear-button"
+          className="reset-button"
           onClick={handleReset}
         >
+          <Icon name="reset" size={16} />
           Reset All
         </button>
       </div>
