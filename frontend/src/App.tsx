@@ -136,6 +136,9 @@ const App: React.FC = () => {
               generationResult={generationResult} 
               setIsLoading={setIsLoading}
               setGenerationResult={setGenerationResult}
+              onRegenerate={() => {
+                setGenerationResult(null);
+              }}
             />
           </div>
         </main>

@@ -3,20 +3,24 @@ import { GenerationResult } from '../types';
 import { checkGenerationStatus } from '../services/api';
 import '../styles/ImageResult.css';
 import { useReset } from '../ResetContext';
+import Icon from './Icon';
 
 interface ImageResultProps {
   generationResult: GenerationResult | null;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setGenerationResult: React.Dispatch<React.SetStateAction<GenerationResult | null>>;
+  onRegenerate?: () => void; // Callback to trigger regeneration
 }
 
 const ImageResult: React.FC<ImageResultProps> = ({ 
   generationResult, 
   setIsLoading,
-  setGenerationResult 
+  setGenerationResult,
+  onRegenerate 
 }) => {
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [isMaximized, setIsMaximized] = useState(false);
   const { resetTrigger } = useReset();
 
   useEffect(() => {
@@ -95,6 +99,33 @@ const ImageResult: React.FC<ImageResultProps> = ({
         });
     }
   };
+
+  const handleMaximize = () => {
+    setIsMaximized(true);
+  };
+
+  const handleCloseMaximized = () => {
+    setIsMaximized(false);
+  };
+
+  // Handle escape key to close maximized view
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMaximized) {
+        setIsMaximized(false);
+      }
+    };
+
+    if (isMaximized) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMaximized]);
   
   if (!result) {
     return (
@@ -119,31 +150,66 @@ const ImageResult: React.FC<ImageResultProps> = ({
   }
   
   return (
-    <div className="image-result completed">
-      {result.image_url && (
-        <div className="image-container">
-          <div className="image-wrapper">
-            <img 
-              src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${result.image_url}`} 
-              alt="Generated from sketch" 
-            />
+    <>
+      <div className="image-result completed">
+        {result.image_url && (
+          <div className="image-container">
+            <div className="image-wrapper">
+              <img 
+                src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${result.image_url}`} 
+                alt="Generated from sketch" 
+              />
+            </div>
+            <div className="image-controls">
+              <div className="control-buttons">
+                <button 
+                  className="control-button"
+                  onClick={handleDownload}
+                  title="Download Image"
+                  aria-label="Download Image"
+                >
+                  <Icon name="download" size={16} />
+                  <span className="button-text">Download</span>
+                </button>
+                
+                <button 
+                  className="control-button"
+                  onClick={handleMaximize}
+                  title="Maximize Image"
+                  aria-label="Maximize Image"
+                >
+                  <Icon name="expand" size={16} />
+                  <span className="button-text">View</span>
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="image-controls">
+        )}
+      </div>
+
+      {/* Maximized Image Modal */}
+      {isMaximized && result?.image_url && (
+        <div className="image-modal-overlay" onClick={handleCloseMaximized}>
+          <div className="image-modal-container">
             <button 
-              className="download-button"
-              onClick={handleDownload}
+              className="image-modal-close"
+              onClick={handleCloseMaximized}
+              title="Close"
+              aria-label="Close maximized view"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="download-icon">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Download Image
+              ×
             </button>
+            <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+              <img 
+                src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${result.image_url}`} 
+                alt="Generated from sketch - Maximized view" 
+                className="maximized-image"
+              />
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

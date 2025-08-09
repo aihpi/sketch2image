@@ -217,7 +217,9 @@
   box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
 }
 
-/* Enhanced Canvas Controls */
+/* ===== CONSISTENT BUTTON SYSTEM ===== */
+
+/* Enhanced Canvas Controls with consistent sizing */
 .canvas-controls {
   margin-top: 1.5rem;
   display: flex;
