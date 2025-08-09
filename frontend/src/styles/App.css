@@ -160,6 +160,20 @@
   color: var(--text-color);
   font-size: 0.875rem;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.required-indicator {
+  background-color: var(--primary-color);
+  color: var(--white);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .description-input input {
@@ -189,6 +203,15 @@
   box-shadow: 0 0 0 3px rgba(51, 51, 51, 0.1);
 }
 
+/* Show red border when empty and touched */
+.description-input input:invalid:not(:placeholder-shown) {
+  border-color: var(--error-color);
+}
+
+.description-input input:invalid:not(:placeholder-shown):focus {
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
+}
+
 .canvas-controls {
   margin-top: 1rem;
   display: flex;
@@ -210,8 +233,8 @@
 .clear-button {
   background-color: var(--light-gray);
   color: var(--dark-gray);
-}
-
+  }
+  
 .clear-button:hover {
   background-color: var(--medium-gray);
 }

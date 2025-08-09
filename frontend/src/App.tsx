@@ -114,15 +114,20 @@ const App: React.FC = () => {
                 setSelectedStyle={setSelectedStyle} 
               />
               <div className="description-input">
-                <label htmlFor="description">Description</label>
-                <input
-                  type="text"
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g., a cat sitting on a chair"
-                />
-              </div>
+  <label htmlFor="description">
+    Description
+    <span className="required-indicator">Required</span>
+  </label>
+  <input
+    type="text"
+    id="description"
+    value={description}
+    onChange={(e) => setDescription(e.target.value)}
+    placeholder="e.g., a cat sitting on a chair"
+    required
+    minLength={3}
+  />
+</div>
             </div>
           </div>
 
