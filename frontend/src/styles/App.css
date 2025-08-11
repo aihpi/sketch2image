@@ -502,8 +502,8 @@ a:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
-  border-radius: 8px;
+  min-height: 60vh;
+  max-height: 80vh;
   overflow: hidden;
   /* Transparent background with subtle tint */
   background: rgba(255, 255, 255, 0.08);
@@ -536,8 +536,8 @@ a:hover {
 .image-result.empty .placeholder {
   width: 100%;
   height: 100%;
-  min-height: 60vh; /* Use viewport height instead of fixed rem */
-  max-height: 80vh; /* Prevent it from becoming too tall */
+  min-height: 60vh;
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -549,7 +549,6 @@ a:hover {
   /* Transparent background with subtle tint */
   background: rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  border: 1px solid var(--border-light);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   
@@ -580,12 +579,6 @@ a:hover {
   font-size: 1rem;
   opacity: 0.4;
   color: var(--text-on-color)
-}
-
-.image-result.processing .status-message {
-  text-align: center;
-  color: var(--text-dark);
-  padding: 2rem;
 }
 
 .info-text {

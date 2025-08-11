@@ -140,25 +140,12 @@ const ImageResult: React.FC<ImageResultProps> = ({
     };
   }, [isMaximized]);
   
-  if (!result) {
+  if (!result || result.status === 'processing') {
     return (
       <>
         <div className="image-result empty">
           <div className="placeholder">
             <p>your generated image will appear here</p>
-          </div>
-        </div>
-      </>
-    );
-  }
-  
-  if (result.status === 'processing') {
-    return (
-      <>
-        <div className="image-result processing">
-          <div className="status-message">
-            <p>generating your image...</p>
-            <p className="info-text">this may take 10-30 seconds</p>
           </div>
         </div>
       </>

@@ -82,7 +82,7 @@ const App: React.FC = () => {
           />
         )}
         
-        {/* LEFT COLUMN: Controls */}
+        {/* LEFT COLUMN: Header, Controls & Footer */}
         <div className="left-column">
           <header className="app-header">
             <h1>Sketch to Image</h1>
@@ -154,8 +154,7 @@ const App: React.FC = () => {
           </footer>
         </div>
 
-
-        {/* RIGHT COLUMN: Canvas, Result, Footer */}
+        {/* RIGHT COLUMN: Canvas & Result */}
         <div className="right-column">
           <section className="canvas-section-alt">
             <h2 className="canvas-section-title">Canvas</h2>
