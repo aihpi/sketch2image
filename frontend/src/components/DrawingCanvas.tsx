@@ -17,7 +17,13 @@ interface DrawingCanvasProps {
   setGenerationResult: React.Dispatch<React.SetStateAction<GenerationResult | null>>;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   showNotification: (message: string, type: 'error' | 'info' | 'success') => void;
+  showCanvasOnly?: boolean;
+  showControlsOnly?: boolean;
 }
+
+// Global shared reference to maintain state across components
+let globalExcalidrawRef: any = null;
+let globalSetExcalidrawRef: ((ref: any) => void) | null = null;
 
 const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   selectedStyle,
@@ -31,18 +37,42 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   setGenerationResult,
   setIsLoading,
   showNotification,
+  showCanvasOnly = false,
+  showControlsOnly = false,
 }) => {
   const excalidrawRef = useRef<any>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { triggerReset } = useReset();
 
+  // Set up the global reference when canvas component mounts
+  useEffect(() => {
+    if (showCanvasOnly && excalidrawRef.current) {
+      globalExcalidrawRef = excalidrawRef.current;
+      // Notify any waiting controls
+      if (globalSetExcalidrawRef) {
+        globalSetExcalidrawRef(excalidrawRef.current);
+      }
+    }
+  }, [showCanvasOnly, excalidrawRef.current]);
+
+  // For controls component, wait for canvas reference
+  useEffect(() => {
+    if (showControlsOnly) {
+      globalSetExcalidrawRef = (ref: any) => {
+        globalExcalidrawRef = ref;
+      };
+    }
+  }, [showControlsOnly]);
+
   const handleGenerateImage = async () => {
-    if (!excalidrawRef.current) {
-      showNotification('Canvas is not initialized', 'error');
+    const excalidrawInstance = globalExcalidrawRef || excalidrawRef.current;
+    
+    if (!excalidrawInstance) {
+      showNotification('Canvas is not initialized. Please wait for the canvas to load.', 'error');
       return;
     }
 
-    const elements = excalidrawRef.current.getSceneElements();
+    const elements = excalidrawInstance.getSceneElements();
     if (!elements || elements.length === 0) {
       showNotification('Please draw something first', 'error');
       return;
@@ -66,7 +96,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     try {
       setIsLoading(true);
 
-      const appState = excalidrawRef.current.getAppState();
+      const appState = excalidrawInstance.getAppState();
 
       const exportAppState = {
         ...appState,
@@ -96,8 +126,10 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   };
 
   const handleReset = () => {
-    if (excalidrawRef.current) {
-      excalidrawRef.current.resetScene();
+    const excalidrawInstance = globalExcalidrawRef || excalidrawRef.current;
+    
+    if (excalidrawInstance) {
+      excalidrawInstance.resetScene();
     }
     
     setDescription('');
@@ -115,6 +147,69 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     triggerReset();
   };
 
+  // Render only controls
+  if (showControlsOnly) {
+    return (
+      <div className="canvas-controls">
+        <button 
+          className="generate-button"
+          onClick={handleGenerateImage}
+        >
+          <Icon name="generate" size={16} />
+          generate image
+        </button>
+        <button 
+          className="reset-button"
+          onClick={handleReset}
+        >
+          <Icon name="reset" size={16} />
+          reset all
+        </button>
+      </div>
+    );
+  }
+
+  // Render only canvas
+  if (showCanvasOnly) {
+    return (
+      <div className="drawing-canvas">
+        <div 
+          ref={wrapperRef}
+          className="excalidraw-wrapper" 
+          style={{ 
+            width: '100%', 
+            height: '100%',
+            minHeight: 400,
+            border: 'none',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            position: 'relative'
+          }}
+        >
+          <Excalidraw
+            ref={excalidrawRef}
+            initialData={{
+              appState: { 
+                viewBackgroundColor: '#ffffff',
+              },
+            }}
+            UIOptions={{
+              canvasActions: {
+                changeViewBackgroundColor: false,
+                export: false,
+                loadScene: false,
+                saveToActiveFile: false,
+                saveAsImage: false,
+                toggleTheme: false,
+              }
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Default render (both canvas and controls) - for backward compatibility
   return (
     <div className="drawing-canvas">
       <div 
@@ -122,8 +217,8 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         className="excalidraw-wrapper" 
         style={{ 
           width: '100%', 
-          height: 500, 
-          border: '1px solid #e0e0e0',
+          height: 400, 
+          border: 'none',
           borderRadius: '8px',
           overflow: 'hidden',
           position: 'relative'
@@ -155,14 +250,14 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           onClick={handleGenerateImage}
         >
           <Icon name="generate" size={16} />
-          Generate Image
+          generate image
         </button>
         <button 
           className="reset-button"
           onClick={handleReset}
         >
           <Icon name="reset" size={16} />
-          Reset All
+          reset all
         </button>
       </div>
     </div>

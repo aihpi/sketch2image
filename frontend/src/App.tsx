@@ -1,5 +1,6 @@
+// src/App.tsx
 import React, { useState, useEffect } from 'react';
-import './styles/App.css';
+import './styles/App.css'; // This will be our single source of truth for styles
 
 import DrawingCanvas from './components/DrawingCanvas';
 import StyleSelector from './components/StyleSelector';
@@ -49,13 +50,17 @@ const App: React.FC = () => {
         const stylesData = await fetchStyles();
         setStyles(stylesData);
         if (stylesData.length > 0) {
-          setSelectedStyle(stylesData[0]);
+          // Find and set a default style, e.g., 'photorealistic'
+          const defaultStyle = stylesData.find(s => s.id === 'photorealistic') || stylesData[0];
+          setSelectedStyle(defaultStyle);
         }
 
         const modelsData = await fetchModels();
         setModels(modelsData);
         if (modelsData.length > 0) {
-          setSelectedModel(modelsData[0]);
+          // Find and set a default model if possible
+          const defaultModel = modelsData.find(m => m.id.includes('sdxl-1.0')) || modelsData[0];
+          setSelectedModel(defaultModel);
         }
       } catch (error) {
         console.error('Failed to fetch initial data:', error);
@@ -77,17 +82,83 @@ const App: React.FC = () => {
           />
         )}
         
-        <header className="app-header">
-          <div className="header-content">
-            <div className="title-section">
-              <h1>Sketch to Image</h1>
-              <p>Draw a sketch and see it transformed into a realistic image</p>
+        {/* LEFT COLUMN: Controls */}
+        <div className="left-column">
+          <header className="app-header">
+            <h1>Sketch to Image</h1>
+          </header>
+
+          <div className="controls-wrapper">
+            <div className="control-group">
+              <ModelSelector 
+                models={models} 
+                selectedModel={selectedModel} 
+                setSelectedModel={setSelectedModel} 
+              />
+            </div>
+
+            <div className="control-group">
+              <StyleSelector 
+                styles={styles} 
+                selectedStyle={selectedStyle} 
+                setSelectedStyle={setSelectedStyle} 
+              />
+            </div>
+
+            <div className="control-group">
+              <label className="control-label" htmlFor="description">
+                Description
+              </label>
+              <textarea
+                id="description"
+                className="modern-textarea"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe your vision... e.g., a cat wearing a tiny hat"
+                required
+                rows={3}
+              />
+            </div>
+
+            <div className="generation-controls">
+              <DrawingCanvas 
+                selectedStyle={selectedStyle}
+                selectedModel={selectedModel}
+                styles={styles}
+                models={models}
+                description={description}
+                setDescription={setDescription}
+                setSelectedStyle={setSelectedStyle}
+                setSelectedModel={setSelectedModel}
+                setGenerationResult={setGenerationResult}
+                setIsLoading={setIsLoading}
+                showNotification={showNotification}
+                showControlsOnly={true}
+              />
             </div>
           </div>
-        </header>
 
-        <main className="app-content">
-          <div className="canvas-container">
+          <footer className="app-footer">
+            <div className="footer-content">
+              <div className="footer-logo-container">
+                <img 
+                  src="/logos.jpg" 
+                  alt="HPI AI Service Center Logo" 
+                  className="footer-logos"
+                />
+                <p className="footer-text">
+                  powered by <a href="https://hpi.de/en/research/hpi-data-center/ai-service-center/" className="footer-link" target="_blank" rel="noopener noreferrer">HPI's AI Service Center</a>
+                </p>
+              </div>
+            </div>
+          </footer>
+        </div>
+
+
+        {/* RIGHT COLUMN: Canvas, Result, Footer */}
+        <div className="right-column">
+          <section className="canvas-section-alt">
+            <h2 className="canvas-section-title">Canvas</h2>
             <DrawingCanvas 
               selectedStyle={selectedStyle}
               selectedModel={selectedModel}
@@ -100,63 +171,21 @@ const App: React.FC = () => {
               setGenerationResult={setGenerationResult}
               setIsLoading={setIsLoading}
               showNotification={showNotification}
+              showCanvasOnly={true}
             />
-            
-            <div className="style-controls">
-              <ModelSelector 
-                models={models} 
-                selectedModel={selectedModel} 
-                setSelectedModel={setSelectedModel} 
-              />
-              <StyleSelector 
-                styles={styles} 
-                selectedStyle={selectedStyle} 
-                setSelectedStyle={setSelectedStyle} 
-              />
-              <div className="description-input">
-  <label htmlFor="description">
-    Description
-    <span className="required-indicator">Required</span>
-  </label>
-  <input
-    type="text"
-    id="description"
-    value={description}
-    onChange={(e) => setDescription(e.target.value)}
-    placeholder="e.g., a cat sitting on a chair"
-    required
-    minLength={3}
-  />
-</div>
-            </div>
-          </div>
+          </section>
 
-          <div className="result-container">
-            <ImageResult 
-              generationResult={generationResult} 
-              setIsLoading={setIsLoading}
-              setGenerationResult={setGenerationResult}
-              onRegenerate={() => {
-                setGenerationResult(null);
-              }}
-            />
-          </div>
-        </main>
-
-        <footer className="app-footer">
-          <div className="footer-content">
-            <div className="logos-container">
-              <img 
-                src="/logos.jpg" 
-                alt="KI Service Zentrum by Hasso-Plattner-Institut - Gefördert vom Bundesministerium für Bildung und Forschung" 
-                className="footer-logos"
+          <section className="result-section">
+            <h2 className="result-section-title">Result</h2>
+            <div className="result-display">
+              <ImageResult 
+                generationResult={generationResult} 
+                setIsLoading={setIsLoading}
+                setGenerationResult={setGenerationResult}
               />
             </div>
-            <p className="footer-text">
-              Powered by <a href="https://hpi.de/en/research/hpi-data-center/ai-service-center/" className="footer-link">HPI's AI Service Center</a>
-            </p>
-          </div>
-        </footer>
+          </section>
+        </div>
 
         {isLoading && <LoadingOverlay />}
       </div>

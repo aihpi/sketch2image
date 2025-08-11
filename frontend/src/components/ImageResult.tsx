@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GenerationResult } from '../types';
 import { checkGenerationStatus } from '../services/api';
-import '../styles/ImageResult.css';
+// import '../styles/ImageResult.css';
 import { useReset } from '../ResetContext';
 import Icon from './Icon';
 
@@ -9,7 +9,7 @@ interface ImageResultProps {
   generationResult: GenerationResult | null;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setGenerationResult: React.Dispatch<React.SetStateAction<GenerationResult | null>>;
-  onRegenerate?: () => void; // Callback to trigger regeneration
+  onRegenerate?: () => void;
 }
 
 const ImageResult: React.FC<ImageResultProps> = ({ 
@@ -118,7 +118,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
 
     if (isMaximized) {
       document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+      document.body.style.overflow = 'hidden';
     }
 
     return () => {
@@ -129,23 +129,26 @@ const ImageResult: React.FC<ImageResultProps> = ({
   
   if (!result) {
     return (
-      <div className="image-result empty">
-        <div className="placeholder">
-          <p>Your generated image will appear here</p>
-          <p>Draw a sketch and click "Generate Image" to start</p>
+      <>
+        <div className="image-result empty">
+          <div className="placeholder">
+            <p>your generated image will appear here</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
   
   if (result.status === 'processing') {
     return (
-      <div className="image-result processing">
-        <div className="status-message">
-          <p>Processing your image...</p>
-          <p className="info-text">This may take 10-30 seconds</p>
+      <>
+        <div className="image-result processing">
+          <div className="status-message">
+            <p>generating your image...</p>
+            <p className="info-text">this may take 10-30 seconds</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
   
@@ -160,32 +163,34 @@ const ImageResult: React.FC<ImageResultProps> = ({
                 alt="Generated from sketch" 
               />
             </div>
-            <div className="image-controls">
-              <div className="control-buttons">
-                <button 
-                  className="control-button"
-                  onClick={handleDownload}
-                  title="Download Image"
-                  aria-label="Download Image"
-                >
-                  <Icon name="download" size={16} />
-                  <span className="button-text">Download</span>
-                </button>
-                
-                <button 
-                  className="control-button"
-                  onClick={handleMaximize}
-                  title="Maximize Image"
-                  aria-label="Maximize Image"
-                >
-                  <Icon name="expand" size={16} />
-                  <span className="button-text">View</span>
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>
+
+      {/* Result Controls - rendered in parent component */}
+      {result?.image_url && (
+        <div className="result-controls">
+          <button 
+            className="control-button"
+            onClick={handleDownload}
+            title="Download Image"
+            aria-label="Download Image"
+          >
+            <Icon name="download" size={16} />
+            download
+          </button>
+          
+          <button 
+            className="control-button"
+            onClick={handleMaximize}
+            title="View Full Size"
+            aria-label="View Full Size"
+          >
+            <Icon name="expand" size={16} />
+            view full size
+          </button>
+        </div>
+      )}
 
       {/* Maximized Image Modal */}
       {isMaximized && result?.image_url && (

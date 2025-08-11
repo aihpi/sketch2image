@@ -1,7 +1,6 @@
 import React from 'react';
 import { Style } from '../types';
 import Icon from './Icon';
-import '../styles/StyleSelector.css';
 
 interface StyleSelectorProps {
   styles: Style[];
@@ -31,13 +30,13 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({
       case 'sketch':
         return 'pencil';
       default:
-        return 'image';
+        return 'camera';
     }
   };
 
   return (
     <div className="style-selector">
-      <label className="selector-label">Style</label>
+      <label className="control-label">Style</label>
       <div className="style-pills">
         {styles.map((style) => (
           <button

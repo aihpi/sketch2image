@@ -1,7 +1,6 @@
 import React from 'react';
 import { Model } from '../types';
 import Icon from './Icon';
-import '../styles/ModelSelector.css';
 
 interface ModelSelectorProps {
   models: Model[];
@@ -30,7 +29,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
 
   return (
     <div className="model-selector">
-      <label className="selector-label">AI Model</label>
+      <label className="control-label">AI Model</label>
       <div className="model-pills">
         {models.map((model) => (
           <button
@@ -39,19 +38,17 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
             onClick={() => setSelectedModel(model)}
             type="button"
           >
-            <div className="model-content">
-              <div className="model-indicator">
-                <Icon name={getModelIconName(model)} size={18} />
-              </div>
-              <div className="model-text">
-                <span className="model-name">{model.name}</span>
-                <div className="model-tags">
-                  {model.recommended_for.map((tag, index) => (
-                    <span key={index} className="model-tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+            <div className="model-indicator">
+              <Icon name={getModelIconName(model)} size={18} />
+            </div>
+            <div className="model-text">
+              <span className="model-name">{model.name}</span>
+              <div className="model-tags">
+                {model.recommended_for.map((tag, index) => (
+                  <span key={index} className="model-tag">
+                    {tag}
+                  </span>
+                ))}
               </div>
             </div>
           </button>
