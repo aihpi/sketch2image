@@ -43,15 +43,16 @@
   --space-5xl: 4rem;     /* 64px */
 
   /* Typography Scale */
-  --text-xs: 0.75rem;    /* 12px */
-  --text-sm: 0.875rem;   /* 14px */
-  --text-base: 1rem;     /* 16px */
-  --text-lg: 1.125rem;   /* 18px */
-  --text-xl: 1.25rem;    /* 20px */
-  --text-2xl: 1.5rem;    /* 24px */
-  --text-3xl: 1.875rem;  /* 30px */
-  --text-4xl: 2.25rem;   /* 36px */
-  --text-5xl: 3rem;      /* 48px */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */ 
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.5rem;      /* 24px */
+  --text-2xl: 2rem;       /* 32px */
+  --text-3xl: 2.5rem;     /* 40px */
+  --text-4xl: 3rem;       /* 48px */
+  --text-5xl: 4rem;       /* 64px */
+  --text-6xl: 5rem;       /* 80px */
 
   /* Component Sizes */
   --radius-sm: 4px;
@@ -159,7 +160,7 @@ a:hover {
 
 .app-header h1 {
   font-family: 'Grafik Poster Sans', 'Arial Black', sans-serif;
-  font-size: clamp(var(--text-3xl), 8vw, var(--text-5xl));
+  font-size: clamp(var(--text-4xl), 8vw, var(--text-6xl));
   line-height: 0.9;
   font-weight: 900;
   text-transform: lowercase;
@@ -212,7 +213,7 @@ a:hover {
 }
 
 .control-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -234,7 +235,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   position: relative;
-  flex: 1;
+  /* flex: 1; */
   min-height: 50vh;
 }
 
@@ -256,13 +257,13 @@ a:hover {
 
 .canvas-section-title {
   font-family: 'Grafik Poster Sans', 'Arial Black', sans-serif;
-  font-size: clamp(var(--text-2xl), 6vw, var(--text-4xl));
+  font-size: clamp(var(--text-3xl), 6vw, var(--text-5xl));
   line-height: 0.9;
   font-weight: 900;
   text-transform: lowercase;
   letter-spacing: -0.04em;
   color: var(--non-photo-blue);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-2xl);
 }
 
 .result-section {
@@ -279,13 +280,13 @@ a:hover {
 
 .result-section-title {
   font-family: 'Grafik Poster Sans', 'Arial Black', sans-serif;
-  font-size: clamp(var(--text-2xl), 6vw, var(--text-4xl));
+  font-size: clamp(var(--text-3xl), 6vw, var(--text-5xl));
   line-height: 0.9;
   font-weight: 900;
   text-transform: lowercase;
   letter-spacing: -0.04em;
   color: var(--persian-pink);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-2xl);
 }
 
 .result-display {
@@ -839,7 +840,7 @@ a:hover {
   background: rgba(255, 255, 255, 0.15);
   color: var(--text-on-color);
   padding: var(--space-sm) var(--space-md);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 500;
   text-transform: lowercase;
   border-radius: var(--radius-md);
@@ -866,7 +867,7 @@ a:hover {
 .app-footer {
   background: var(--cream);
   color: var(--text-light);
-  padding: var(--space-2xl);
+  padding: var(--space-xl);
   text-align: center;
   flex-shrink: 0;
   font-weight: 500;
@@ -880,15 +881,15 @@ a:hover {
 }
 
 .footer-logos {
-  max-height: 6rem;
+  max-height: 7rem;
   margin-bottom: var(--space-sm);
   mix-blend-mode: multiply;
 }
 
 .footer-text {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   text-align: center;
-  line-height: 1.2;
+  line-height: 0.9;
 }
 
 .footer-link {
@@ -1092,7 +1093,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
+  line-height: 0.9;
 }
 
 .image-modal-close .icon {
@@ -1164,6 +1165,15 @@ a:hover {
     padding: var(--space-xl);
   }
 
+  .app-header h1 {
+    font-size: clamp(var(--text-3xl), 8vw, var(--text-5xl));
+  }
+  
+  .canvas-section-title,
+  .result-section-title {
+    font-size: clamp(var(--text-2xl), 8vw, var(--text-4xl));
+  }
+
   .controls-wrapper {
     padding: var(--space-xl);
     gap: var(--space-lg);
@@ -1183,10 +1193,10 @@ a:hover {
     gap: var(--space-sm);
   }
 
-  .style-pill {
+  /* .style-pill {
     padding: var(--space-xs) var(--space-sm);
     font-size: var(--text-xs);
-  }
+  } */
 
   .modern-textarea {
     padding: var(--space-sm) var(--space-md);
@@ -1298,8 +1308,39 @@ a:hover {
   
   .canvas-section-title,
   .result-section-title {
-    font-size: clamp(var(--text-xl), 8vw, var(--text-3xl));
-    margin-bottom: var(--space-md);
+    font-size: clamp(var(--text-2xl), 8vw, var(--text-4xl));
+    /* margin-bottom: var(--space-md); */
+  }
+  
+  /* HEADER SECTION */
+  .app-header h1 {
+    font-size: clamp(var(--text-3xl), 8vw, var(--text-5xl)); /* was clamp(var(--text-4xl), 8vw, var(--text-6xl)) */
+  }
+
+  .info-text {
+    font-size: var(--text-xs); /* was var(--text-sm) */
+  }
+
+  .thumbnail-overlay {
+    font-size: 0.65rem; /* was var(--text-xs) */
+  }
+
+  .control-button {
+    font-size: 0.6rem; /* One level smaller than var(--text-xs) */
+  }
+
+  /* LOADING OVERLAY */
+  .loading-text {
+    font-size: var(--text-base); /* was var(--text-lg) */
+  }
+
+  .loading-subtext {
+    font-size: var(--text-xs); /* was var(--text-sm) */
+  }
+
+  /* NOTIFICATION SYSTEM */
+  .notification-message {
+    font-size: var(--text-xs); /* was var(--text-sm) */
   }
 
   .image-gallery {
@@ -1325,7 +1366,7 @@ a:hover {
   .thumbnail-overlay {
     width: 18px;
     height: 18px;
-    font-size: var(--text-xs);
+    font-size: 0.65rem; /* One level smaller than var(--text-xs) */
     top: var(--space-xs);
     right: var(--space-xs);
   }
@@ -1363,7 +1404,7 @@ a:hover {
   }
   
   .app-header h1 {
-    font-size: clamp(var(--text-2xl), 10vw, var(--text-3xl));
+    font-size: clamp(var(--text-2xl), 10vw, var(--text-4xl));
   }
   
   .controls-wrapper,
@@ -1379,7 +1420,21 @@ a:hover {
   .control-group {
     gap: var(--space-sm);
   }
-  
+
+  /* FOOTER SECTION */
+  .footer-text {
+    font-size: var(--text-xs);
+  }
+
+  .footer-link {
+    font-size: var(--text-xs);
+  }
+
+  /* CONTROLS SECTION */
+  .control-label {
+    font-size: var(--text-sm); /* was var(--text-base) - two levels smaller */
+  }
+
   .model-pills {
     gap: var(--space-xs);
   }
@@ -1390,12 +1445,17 @@ a:hover {
   }
   
   .model-name {
-    font-size: var(--text-xs);
+    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
   }
   
   .model-tag {
-    font-size: 0.65rem;
+    font-size: 0.6rem; /* was var(--text-xs) - one level smaller */
     padding: 2px var(--space-xs);
+  }
+
+  .model-selector.loading,
+  .style-selector.loading {
+    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
   }
   
   .style-pills {
@@ -1404,29 +1464,51 @@ a:hover {
   
   .style-pill {
     padding: var(--space-xs) var(--space-sm);
-    font-size: var(--text-xs);
+    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
   }
   
   .style-text {
-    font-size: var(--text-xs);
+    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
   }
   
   .modern-textarea {
     padding: var(--space-sm) var(--space-md);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs); /* was var(--text-sm) - one level smaller */
     min-height: 60px;
+  }
+
+  .modern-textarea::placeholder {
+    font-size: var(--text-xs); /* inherits from modern-textarea */
+  }
+
+  /* CANVAS SECTION */
+  .canvas-section-title {
+    font-size: clamp(var(--text-xl), 8vw, var(--text-2xl)); /* was clamp(var(--text-3xl), 6vw, var(--text-5xl)) */
+    margin-bottom: var(--space-sm);
   }
   
   .generate-button,
   .reset-button {
     padding: var(--space-md);
-    font-size: var(--text-sm);
+    font-size: var(--text-sm); /* was var(--text-base) - one level smaller */
   }
-  
-  .canvas-section-title,
+
+  /* RESULTS SECTION */
   .result-section-title {
-    font-size: clamp(var(--text-xl), 8vw, var(--text-2xl));
+    font-size: clamp(var(--text-xl), 8vw, var(--text-2xl)); /* was clamp(var(--text-3xl), 6vw, var(--text-5xl)) */
     margin-bottom: var(--space-sm);
+  }
+
+  .image-result.empty .placeholder p:first-child {
+    font-size: var(--text-base); /* was var(--text-xl) - one level smaller */
+  }
+
+  .image-result.empty .placeholder p:last-child {
+    font-size: var(--text-xs); /* was var(--text-base) - two levels smaller */
+  }
+
+  .info-text {
+    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
   }
   
   .thumbnail-container {
@@ -1437,36 +1519,29 @@ a:hover {
   .thumbnail-overlay {
     width: 16px;
     height: 16px;
-    font-size: 0.6rem;
+    font-size: 0.55rem; /* was var(--text-xs) - two levels smaller */
     top: 2px;
     right: 2px;
   }
   
-  .image-gallery {
-    gap: var(--space-md);
-  }
-  
-  .main-image-wrapper {
-    min-height: 180px;
-    max-height: 280px;
-  }
-  
-  .result-display {
-    min-height: var(--result-min-height);
-  }
-  
-  .footer-logos {
-    max-height: 4rem;
-  }
-  
-  .footer-text {
-    font-size: var(--text-sm);
-  }
-  
   .control-button {
     padding: var(--space-sm) var(--space-md);
-    font-size: var(--text-xs);
+    font-size: 0.55rem; /* was var(--text-xs) - two levels smaller */
     min-width: 80px;
+  }
+
+  /* LOADING OVERLAY */
+  .loading-text {
+    font-size: var(--text-sm); /* was var(--text-lg) - two levels smaller */
+  }
+
+  .loading-subtext {
+    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
+  }
+
+  /* NOTIFICATION SYSTEM */
+  .notification-message {
+    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
   }
   
   .image-modal-close {
