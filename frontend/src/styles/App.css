@@ -812,7 +812,7 @@ a:hover {
 }
 
 /* Result Controls */
-.result-controls {
+/* .result-controls {
   position: absolute;
   bottom: var(--space-lg);
   left: 50%;
@@ -827,6 +827,18 @@ a:hover {
   border: 1px solid var(--amethyst);
   z-index: 10;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+} */
+
+.result-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  padding: var(--space-lg) var(--space-md) var(--space-md);
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
 }
 
 .control-button {
