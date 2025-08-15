@@ -1138,12 +1138,10 @@ a:hover {
   }
 }
 
-/* iPad and Large Tablet - Enhanced responsiveness */
+/* iPad and Large Tablet */
 @media (max-width: 1024px) and (min-width: 769px) {
   :root {
     --sidebar-width: 360px;
-    --space-2xl: 1.5rem;
-    --space-xl: 1.25rem;
     --canvas-min-height: 350px;
     --result-min-height: 300px;
     --thumbnail-size: 70px;
@@ -1193,11 +1191,6 @@ a:hover {
     gap: var(--space-sm);
   }
 
-  /* .style-pill {
-    padding: var(--space-xs) var(--space-sm);
-    font-size: var(--text-xs);
-  } */
-
   .modern-textarea {
     padding: var(--space-sm) var(--space-md);
     min-height: 70px;
@@ -1227,11 +1220,9 @@ a:hover {
 /* Medium to Small Screens - 1 column layout */
 @media (max-width: 768px) {
   :root {
-    --space-2xl: 1.5rem;
-    --space-xl: 1rem;
-    --canvas-min-height: 300px;
-    --result-min-height: 250px;
-    --thumbnail-size-mobile: 60px;
+    --canvas-min-height: 350px;
+    --result-min-height: 300px;
+    --thumbnail-size-mobile: 70px;
   }
 
   .desktop-only {
@@ -1278,6 +1269,7 @@ a:hover {
   
   .controls-wrapper {
     padding: var(--space-xl);
+    gap: var(--space-lg);
   }
   
   .canvas-section,
@@ -1305,42 +1297,30 @@ a:hover {
   .app-header {
     padding: var(--space-xl);
   }
+
+  .app-header h1 {
+    font-size: clamp(var(--text-3xl), 8vw, var(--text-5xl));
+  }
   
   .canvas-section-title,
   .result-section-title {
     font-size: clamp(var(--text-2xl), 8vw, var(--text-4xl));
-    /* margin-bottom: var(--space-md); */
-  }
-  
-  /* HEADER SECTION */
-  .app-header h1 {
-    font-size: clamp(var(--text-3xl), 8vw, var(--text-5xl)); /* was clamp(var(--text-4xl), 8vw, var(--text-6xl)) */
   }
 
-  .info-text {
-    font-size: var(--text-xs); /* was var(--text-sm) */
+  .model-pill {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-sm);
   }
 
-  .thumbnail-overlay {
-    font-size: 0.65rem; /* was var(--text-xs) */
+  .modern-textarea {
+    padding: var(--space-sm) var(--space-md);
+    min-height: 70px;
   }
 
-  .control-button {
-    font-size: 0.6rem; /* One level smaller than var(--text-xs) */
-  }
-
-  /* LOADING OVERLAY */
-  .loading-text {
-    font-size: var(--text-base); /* was var(--text-lg) */
-  }
-
-  .loading-subtext {
-    font-size: var(--text-xs); /* was var(--text-sm) */
-  }
-
-  /* NOTIFICATION SYSTEM */
-  .notification-message {
-    font-size: var(--text-xs); /* was var(--text-sm) */
+  .generate-button,
+  .reset-button {
+    padding: var(--space-md);
+    font-size: var(--text-sm);
   }
 
   .image-gallery {
@@ -1361,14 +1341,6 @@ a:hover {
   .thumbnail-container {
     width: var(--thumbnail-size-mobile);
     height: var(--thumbnail-size-mobile);
-  }
-  
-  .thumbnail-overlay {
-    width: 18px;
-    height: 18px;
-    font-size: 0.65rem; /* One level smaller than var(--text-xs) */
-    top: var(--space-xs);
-    right: var(--space-xs);
   }
 
   .image-result.completed {
@@ -1392,8 +1364,6 @@ a:hover {
 /* Mobile Adjustments */
 @media (max-width: 480px) {
   :root {
-    --space-2xl: 1rem;
-    --space-xl: 0.75rem;
     --canvas-min-height: 280px;
     --result-min-height: 200px;
     --thumbnail-size-mobile: 50px;
@@ -1421,18 +1391,13 @@ a:hover {
     gap: var(--space-sm);
   }
 
-  /* FOOTER SECTION */
-  .footer-text {
-    font-size: var(--text-xs);
-  }
-
+  .footer-text,
   .footer-link {
     font-size: var(--text-xs);
   }
 
-  /* CONTROLS SECTION */
   .control-label {
-    font-size: var(--text-sm); /* was var(--text-base) - two levels smaller */
+    font-size: var(--text-sm);
   }
 
   .model-pills {
@@ -1445,17 +1410,17 @@ a:hover {
   }
   
   .model-name {
-    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
+    font-size: var(--text-xs);
   }
   
   .model-tag {
-    font-size: 0.6rem; /* was var(--text-xs) - one level smaller */
-    padding: 2px var(--space-xs);
+    font-size: var(--text-xs);
+    padding: var(--space-xs);
   }
 
   .model-selector.loading,
   .style-selector.loading {
-    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
+    font-size: var(--text-xs);
   }
   
   .style-pills {
@@ -1464,51 +1429,41 @@ a:hover {
   
   .style-pill {
     padding: var(--space-xs) var(--space-sm);
-    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
+    font-size: var(--text-xs);
   }
   
   .style-text {
-    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
+    font-size: var(--text-xs);
   }
   
   .modern-textarea {
     padding: var(--space-sm) var(--space-md);
-    font-size: var(--text-xs); /* was var(--text-sm) - one level smaller */
+    font-size: var(--text-xs);
     min-height: 60px;
   }
 
-  .modern-textarea::placeholder {
-    font-size: var(--text-xs); /* inherits from modern-textarea */
-  }
-
-  /* CANVAS SECTION */
-  .canvas-section-title {
-    font-size: clamp(var(--text-xl), 8vw, var(--text-2xl)); /* was clamp(var(--text-3xl), 6vw, var(--text-5xl)) */
-    margin-bottom: var(--space-sm);
+  .canvas-section-title,
+  .result-section-title {
+    font-size: clamp(var(--text-xl), 8vw, var(--text-2xl));
+    margin-bottom: var(--space-xl);
   }
   
   .generate-button,
   .reset-button {
     padding: var(--space-md);
-    font-size: var(--text-sm); /* was var(--text-base) - one level smaller */
-  }
-
-  /* RESULTS SECTION */
-  .result-section-title {
-    font-size: clamp(var(--text-xl), 8vw, var(--text-2xl)); /* was clamp(var(--text-3xl), 6vw, var(--text-5xl)) */
-    margin-bottom: var(--space-sm);
+    font-size: var(--text-sm);
   }
 
   .image-result.empty .placeholder p:first-child {
-    font-size: var(--text-base); /* was var(--text-xl) - one level smaller */
+    font-size: var(--text-base);
   }
 
   .image-result.empty .placeholder p:last-child {
-    font-size: var(--text-xs); /* was var(--text-base) - two levels smaller */
+    font-size: var(--text-xs);
   }
 
   .info-text {
-    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
+    font-size: var(--text-xs);
   }
   
   .thumbnail-container {
@@ -1519,33 +1474,36 @@ a:hover {
   .thumbnail-overlay {
     width: 16px;
     height: 16px;
-    font-size: 0.55rem; /* was var(--text-xs) - two levels smaller */
-    top: 2px;
-    right: 2px;
+    font-size: var(--text-xs);
+    top: var(--space-xs);
+    right: var(--space-xs);
   }
   
   .control-button {
     padding: var(--space-sm) var(--space-md);
-    font-size: 0.55rem; /* was var(--text-xs) - two levels smaller */
+    font-size: var(--text-xs);
     min-width: 80px;
   }
 
-  /* LOADING OVERLAY */
   .loading-text {
-    font-size: var(--text-sm); /* was var(--text-lg) - two levels smaller */
+    font-size: var(--text-sm);
   }
 
   .loading-subtext {
-    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
+    font-size: var(--text-xs);
   }
 
-  /* NOTIFICATION SYSTEM */
   .notification-message {
-    font-size: 0.65rem; /* was var(--text-sm) - two levels smaller */
+    font-size: var(--text-xs);
   }
   
   .image-modal-close {
     right: -35px;
     top: -5px;
+  }
+
+  .footer-logos {
+    max-height: 6rem;
+    margin-bottom: var(--space-xs);
   }
 }
