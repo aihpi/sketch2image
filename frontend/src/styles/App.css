@@ -174,7 +174,7 @@ a:hover {
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr;
   flex: 1;
-  min-height: 0;
+  min-height: calc(100vh - var(--header-height, 120px) - var(--footer-height, 80px));
 }
 
 /* Controls Column */
@@ -183,6 +183,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  background: var(--pigment-green);
 }
 
 /* Mobile Controls & Result */
@@ -226,7 +227,7 @@ a:hover {
   grid-column: 2 / 3;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  min-height: 100%;
 }
 
 .canvas-section {
@@ -235,8 +236,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   position: relative;
-  /* flex: 1; */
-  min-height: 50vh;
+  flex: 1;
 }
 
 .canvas-section::after {
@@ -270,12 +270,10 @@ a:hover {
   position: relative;
   background: var(--bice-blue);
   color: var(--text-on-dark);
-  display: flex;
+  /* display: flex; */
   flex-direction: column;
-  flex: 1;
   gap: var(--space-xl);
   padding: calc(var(--space-2xl) + 40px) var(--space-2xl) var(--space-2xl) var(--space-2xl);
-  min-height: 50vh;
 }
 
 .result-section-title {
@@ -295,17 +293,18 @@ a:hover {
   justify-content: center;
   position: relative;
   flex: 1;
-  min-height: var(--result-min-height);
-  max-height: calc(100vh - 200px);
   margin-top: 0;
 }
 
 /* Drawing Canvas */
+.drawing-canvas {
+  flex: 1;
+}
 .excalidraw-wrapper {
   background: var(--bg-primary);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  flex-grow: 1;
+  flex: 1;
   min-height: var(--canvas-min-height);
   box-shadow: 0 8px 24px var(--shadow-light);
   border: 2px solid var(--non-photo-blue);
@@ -578,8 +577,7 @@ a:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: var(--result-min-height);
-  max-height: 400px;
+  /* min-height: var(--result-min-height); */
   overflow: hidden;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-light);
@@ -668,8 +666,8 @@ a:hover {
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: none;
-  min-height: var(--canvas-min-height);
-  max-height: 400px;
+  /* min-height: var(--canvas-min-height); */
+  /* max-height: 400px; */
   width: 100%;
   display: flex;
   align-items: center;
@@ -1251,6 +1249,7 @@ a:hover {
   .canvas-result-column {
     grid-column: 1 / 2;
     grid-row: 1 / 2;
+    flex: 0 0 auto;
   }
   
   .mobile-controls {

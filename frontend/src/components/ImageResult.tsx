@@ -214,9 +214,6 @@ const ImageResult: React.FC<ImageResultProps> = ({
       )}
     </div>
 
-    {/* Remove the separate result controls section since it's now inside main-image-wrapper */}
-
-    {/* Maximized Image Modal */}
     {isMaximized && simulatedResults.length > 0 && (
       <div className="image-modal-overlay" onClick={handleCloseMaximized}>
         <div className="image-modal-container">
