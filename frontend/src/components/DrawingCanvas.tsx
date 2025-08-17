@@ -74,22 +74,22 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
     const elements = excalidrawInstance.getSceneElements();
     if (!elements || elements.length === 0) {
-      showNotification('Please draw something first', 'error');
+      showNotification('please draw something first', 'error');
       return;
     }
 
     if (!selectedStyle) {
-      showNotification('Please select a style first', 'error');
+      showNotification('please select a style first', 'error');
       return;
     }
 
     if (!selectedModel) {
-      showNotification('Please select a model first', 'error');
+      showNotification('please select a model first', 'error');
       return;
     }
 
     if (!description.trim()) {
-      showNotification('Please describe what you want to generate', 'error');
+      showNotification('please describe what you want to generate', 'error');
       return;
     }
 

@@ -1370,6 +1370,38 @@ a:hover {
   .result-display {
     min-height: var(--result-min-height);
   }
+
+  .image-modal-close {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    left: auto;
+    z-index: 10000;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--border-light);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px var(--shadow-light);
+  }
+
+  .image-modal-close .icon {
+    filter: brightness(0) saturate(100%) invert(1);
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    width: var(--space-lg);
+    height: var(--space-lg);
+  }
+
+  .image-modal-close:hover {
+    background: rgba(255, 255, 255, 0.20);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px var(--shadow-medium);
+  }
 }
 
 /* Mobile Adjustments */
@@ -1506,11 +1538,6 @@ a:hover {
 
   .notification-message {
     font-size: var(--text-xs);
-  }
-  
-  .image-modal-close {
-    right: -35px;
-    top: -5px;
   }
 
   .footer-logos {
