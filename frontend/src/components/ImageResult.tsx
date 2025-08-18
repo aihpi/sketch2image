@@ -21,20 +21,15 @@ const ImageResult: React.FC<ImageResultProps> = ({
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const { resetTrigger } = useReset();
-
-  // For now, simulate 3 results using the same image
-  const simulatedResults = result?.image_url ? [
-    result.image_url,
-    result.image_url,
-    result.image_url
-  ] : [];
 
   useEffect(() => {
     if (resetTrigger > 0) {
       setResult(null);
       setGenerationResult(null);
       setSelectedImageIndex(0);
+      setImageUrls([]);
     }
   }, [resetTrigger, setGenerationResult]);
 
@@ -42,9 +37,13 @@ const ImageResult: React.FC<ImageResultProps> = ({
     if (generationResult) {
       setResult(generationResult);
       setSelectedImageIndex(0); // Reset to first image when new results come in
+      setImageUrls([]); // Clear previous URLs
       
       if (generationResult.status === 'processing') {
         startStatusPolling(generationResult.generation_id);
+      } else if (generationResult.status === 'completed' && generationResult.image_url) {
+        // Generate URLs for multiple images
+        generateImageUrls(generationResult.generation_id, generationResult.image_url);
       }
     }
   }, [generationResult]);
@@ -56,6 +55,21 @@ const ImageResult: React.FC<ImageResultProps> = ({
       }
     };
   }, [pollingInterval]);
+
+  const generateImageUrls = (generationId: string, firstImageUrl: string) => {
+    // Check if this is a multi-image result (ends with _1)
+    if (firstImageUrl.includes('_1')) {
+      // Generate URLs for 3 images
+      const urls = [];
+      for (let i = 1; i <= 3; i++) {
+        urls.push(`/api/images/${generationId}_${i}`);
+      }
+      setImageUrls(urls);
+    } else {
+      // Single image result
+      setImageUrls([firstImageUrl]);
+    }
+  };
   
   const startStatusPolling = (generationId: string) => {
     if (pollingInterval) {
@@ -73,6 +87,10 @@ const ImageResult: React.FC<ImageResultProps> = ({
           clearInterval(interval);
           setPollingInterval(null);
           setIsLoading(false);
+          
+          if (updatedResult.image_url) {
+            generateImageUrls(generationId, updatedResult.image_url);
+          }
         }
       } catch (error) {
         console.error('Error checking generation status:', error);
@@ -86,8 +104,8 @@ const ImageResult: React.FC<ImageResultProps> = ({
   };
 
   const handleDownload = () => {
-    if (simulatedResults[selectedImageIndex]) {
-      const imageUrl = `${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${simulatedResults[selectedImageIndex]}`;
+    if (imageUrls[selectedImageIndex]) {
+      const imageUrl = `${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrls[selectedImageIndex]}`;
       
       const link = document.createElement('a');
       link.href = imageUrl;
@@ -155,13 +173,13 @@ const ImageResult: React.FC<ImageResultProps> = ({
   return (
   <>
     <div className="image-result completed">
-      {simulatedResults.length > 0 && (
+      {imageUrls.length > 0 && (
         <div className="image-gallery">
           {/* Main Image Display */}
           <div className="main-image-container">
             <div className="main-image-wrapper">
               <img 
-                src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${simulatedResults[selectedImageIndex]}`} 
+                src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrls[selectedImageIndex]}`} 
                 alt="Generated from sketch" 
                 className="main-image"
               />
@@ -191,30 +209,32 @@ const ImageResult: React.FC<ImageResultProps> = ({
             </div>
           </div>
 
-          {/* Thumbnail Gallery */}
-          <div className="thumbnail-gallery">
-            {simulatedResults.map((imageUrl, index) => (
-              <div 
-                key={index}
-                className={`thumbnail-container ${selectedImageIndex === index ? 'selected' : ''}`}
-                onClick={() => handleThumbnailClick(index)}
-              >
-                <img 
-                  src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrl}`} 
-                  alt={`Generated variation ${index + 1}`}
-                  className="thumbnail-image"
-                />
-                <div className="thumbnail-overlay">
-                  <span className="thumbnail-number">{index + 1}</span>
+          {/* Thumbnail Gallery - only show if multiple images */}
+          {imageUrls.length > 1 && (
+            <div className="thumbnail-gallery">
+              {imageUrls.map((imageUrl, index) => (
+                <div 
+                  key={index}
+                  className={`thumbnail-container ${selectedImageIndex === index ? 'selected' : ''}`}
+                  onClick={() => handleThumbnailClick(index)}
+                >
+                  <img 
+                    src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrl}`} 
+                    alt={`Generated variation ${index + 1}`}
+                    className="thumbnail-image"
+                  />
+                  <div className="thumbnail-overlay">
+                    <span className="thumbnail-number">{index + 1}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
 
-    {isMaximized && simulatedResults.length > 0 && (
+    {isMaximized && imageUrls.length > 0 && (
       <div className="image-modal-overlay" onClick={handleCloseMaximized}>
         <div className="image-modal-container">
           <button 
@@ -227,7 +247,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
           </button>
           <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
             <img 
-              src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${simulatedResults[selectedImageIndex]}`} 
+              src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrls[selectedImageIndex]}`} 
               alt="Generated from sketch - Maximized view" 
               className="maximized-image"
             />

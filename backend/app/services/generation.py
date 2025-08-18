@@ -188,14 +188,90 @@ def preprocess_sketch(sketch_path, model_id):
     
     return processed_image
 
+def generate_controlnet_batch(pipe, sketch_image, prompt, negative_prompt, config, num_images=3):
+    """
+    Generate multiple images using ControlNet with batch processing for efficiency
+    """
+    print(f"Generating {num_images} images with ControlNet batch processing")
+    
+    # Create batch inputs
+    batch_prompt = [prompt] * num_images
+    batch_negative_prompt = [negative_prompt] * num_images if negative_prompt else None
+    batch_image = [sketch_image] * num_images
+    
+    # Generate different seeds for variation
+    generators = []
+    device = pipe.device
+    for i in range(num_images):
+        generator = torch.Generator(device=device)
+        generator.manual_seed(torch.randint(0, 2**42, (1,)).item())
+        generators.append(generator)
+    
+    params = {
+        "prompt": batch_prompt,
+        "image": batch_image,
+        "num_inference_steps": config.get("num_inference_steps", 20),
+        "guidance_scale": config.get("guidance_scale", 7.5),
+        "generator": generators
+    }
+    
+    if batch_negative_prompt:
+        params["negative_prompt"] = batch_negative_prompt
+    
+    print(f"Starting batch generation with ControlNet...")
+    output = pipe(**params)
+    
+    if hasattr(output, "images"):
+        return output.images
+    else:
+        return output if isinstance(output, list) else [output]
+
+def generate_t2i_sequence(pipe, sketch_image, prompt, negative_prompt, config, num_images=3):
+    """
+    Generate multiple images using T2I Adapter with optimized sequential generation
+    """
+    print(f"Generating {num_images} images with T2I sequential processing")
+    
+    images = []
+    device = pipe.device
+    
+    for i in range(num_images):
+        print(f"Generating image {i+1}/{num_images}")
+        
+        # Generate different seed for each image
+        generator = torch.Generator(device=device)
+        generator.manual_seed(torch.randint(0, 2**32, (1,)).item())
+        
+        params = {
+            "prompt": prompt,
+            "image": sketch_image,
+            "num_inference_steps": config.get("num_inference_steps", 40),
+            "guidance_scale": config.get("guidance_scale", 7.5),
+            "generator": generator,
+            "adapter_conditioning_scale": config.get("adapter_conditioning_scale", 0.9),
+            "adapter_conditioning_factor": config.get("adapter_conditioning_factor", 0.9)
+        }
+        
+        if negative_prompt:
+            params["negative_prompt"] = negative_prompt
+        
+        output = pipe(**params)
+        
+        if hasattr(output, "images") and len(output.images) > 0:
+            images.append(output.images[0])
+        else:
+            images.append(output[0] if isinstance(output, (list, tuple)) else output)
+    
+    return images
+
 async def generate_image_from_sketch(
     sketch_path, 
-    output_path, 
+    output_path_prefix,  # Changed to prefix since we now generate multiple images
     prompt, 
     model_id="controlnet_scribble",
     negative_prompt=""
 ):
-    """Generate an image from a sketch using the selected model"""
+    """Generate multiple images from a sketch using the selected model"""
     try:
         pipe = load_model_pipeline(model_id)
         
@@ -207,42 +283,56 @@ async def generate_image_from_sketch(
         if not negative_prompt and "default_negative_prompt" in config:
             negative_prompt = config["default_negative_prompt"]
         
-        params = {
-            "prompt": prompt,
-            "image": sketch_image,
-        }
+        # Determine number of images to generate (3 for controlnet/t2i, 1 for flux)
+        num_images = 1 if model_id == "flux_canny" else 3
         
-        # Add negative prompt only for models that support it
-        if negative_prompt and model_id != "flux_canny":
-            params["negative_prompt"] = negative_prompt
+        print(f"Generating {num_images} images with model {model_id}")
         
-        num_inference_steps = config.get("num_inference_steps", 20)
-        guidance_scale = config.get("guidance_scale", 7.5)
-        
-        params["num_inference_steps"] = num_inference_steps
-        params["guidance_scale"] = guidance_scale
-        
-        if model_id == "t2i_adapter_sdxl":
-            params["adapter_conditioning_scale"] = config.get("adapter_conditioning_scale", 0.9)
-            params["adapter_conditioning_factor"] = config.get("adapter_conditioning_factor", 0.9)
+        if model_id == "controlnet_scribble":
+            # Use batch generation for ControlNet
+            images = generate_controlnet_batch(
+                pipe, sketch_image, prompt, negative_prompt, config, num_images
+            )
+        elif model_id == "t2i_adapter_sdxl":
+            # Use optimized sequential generation for T2I
+            images = generate_t2i_sequence(
+                pipe, sketch_image, prompt, negative_prompt, config, num_images
+            )
         elif model_id == "flux_canny":
-            params["height"] = config.get("output_height", 1024)
-            params["width"] = config.get("output_width", 1024)
-            params["control_image"] = params.pop("image")
+            # Single image generation for Flux
+            params = {
+                "prompt": prompt,
+                "control_image": sketch_image,
+                "height": config.get("output_height", 1024),
+                "width": config.get("output_width", 1024),
+                "num_inference_steps": config.get("num_inference_steps", 50),
+                "guidance_scale": config.get("guidance_scale", 30.0)
+            }
+            
+            if negative_prompt:
+                params["negative_prompt"] = negative_prompt
+            
+            output = pipe(**params)
+            
+            if hasattr(output, "images") and len(output.images) > 0:
+                images = [output.images[0]]
+            else:
+                images = [output[0] if isinstance(output, (list, tuple)) else output]
         
-        print(f"Generating with model {model_id} using parameters: {params}")
+        # Save all generated images
+        output_paths = []
+        for i, image in enumerate(images):
+            if num_images == 1:
+                output_path = f"{output_path_prefix}.png"
+            else:
+                output_path = f"{output_path_prefix}_{i+1}.png"
+            
+            image.save(output_path)
+            output_paths.append(output_path)
+            print(f"Saved image {i+1} to {output_path}")
         
-        output = pipe(**params)
+        return output_paths
         
-        if hasattr(output, "images") and len(output.images) > 0:
-            output_image = output.images[0]
-        else:
-            output_image = output[0] if isinstance(output, (list, tuple)) else output
-        
-        output_image.save(output_path)
-        
-        return output_path
-    
     except Exception as e:
-        print(f"Error generating image with model {model_id}: {str(e)}")
+        print(f"Error generating images with model {model_id}: {str(e)}")
         raise e
