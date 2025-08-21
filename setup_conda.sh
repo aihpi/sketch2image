@@ -212,28 +212,6 @@ EOF
 
 chmod +x "$PROJECT_DIR/start_app.sh"
 
-# Create individual service scripts
-cat > "$PROJECT_DIR/start_backend.sh" << 'EOF'
-#!/bin/bash
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR/backend"
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate sketch2image-backend
-python main.py
-EOF
-
-cat > "$PROJECT_DIR/start_frontend.sh" << 'EOF'
-#!/bin/bash
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR/frontend"
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate sketch2image-frontend
-npm start
-EOF
-
-chmod +x "$PROJECT_DIR/start_backend.sh"
-chmod +x "$PROJECT_DIR/start_frontend.sh"
-
 echo "✓ Startup scripts created"
 
 echo ""
@@ -245,8 +223,6 @@ echo "  - sketch2image-frontend (Node.js 18 + React)"
 echo ""
 echo "Available scripts:"
 echo "  - ./start_app.sh        : Start both backend and frontend"
-echo "  - ./start_backend.sh    : Start only backend"
-echo "  - ./start_frontend.sh   : Start only frontend"
 echo ""
 echo "To start the application:"
 echo "  ./start_app.sh"
