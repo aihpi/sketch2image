@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e # Exit immediately if a command fails
 
+echo "=== Sketch-to-Image Container Build & Push ==="
+
 # === Configuration ===
 # The target GitHub organization for the packages.
 GITHUB_ORG="aihpi"
@@ -17,13 +19,14 @@ PLATFORM="linux/amd64"
 
 # --- Pre-flight Check ---
 if [[ "$GITHUB_USER" == "YOUR_USERNAME_HERE" ]]; then
-    echo "❌ Error: Please edit this script ($0) and set your GITHUB_USER."
+    echo "❌ Error: Please edit this script and set your GITHUB_USER."
     exit 1
 fi
 
 # --- Main Script ---
 # Navigate to the project root directory from the script's location
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$PROJECT_DIR"
 
 echo "▶ (1/4) Logging into GitHub Container Registry (ghcr.io)..."
 echo "    You will be prompted for your password. Use your Personal Access Token (PAT)."

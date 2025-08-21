@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "=== Sketch-to-Image Demonstrator Setup (Conda Version) ==="
+echo "=== Sketch-to-Image Conda Setup ==="
 echo "Setting up conda environments and dependencies..."
 
 # Check if conda is available
@@ -9,14 +9,13 @@ if ! command -v conda &> /dev/null; then
     exit 1
 fi
 
-# Get the project directory
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "Project directory: $PROJECT_DIR"
+# Get the project root directory
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Create required directories
 echo "Creating required directories..."
-mkdir -p backend/uploads backend/outputs backend/preprocessed
-chmod -R 755 backend/uploads backend/outputs backend/preprocessed
+mkdir -p "$PROJECT_DIR/backend/uploads" "$PROJECT_DIR/backend/outputs" "$PROJECT_DIR/backend/preprocessed"
+chmod -R 755 "$PROJECT_DIR/backend/uploads" "$PROJECT_DIR/backend/outputs" "$PROJECT_DIR/backend/preprocessed"
 echo "✓ Created and set permissions for backend directories"
 
 # Setup Backend Environment
@@ -43,17 +42,13 @@ conda activate sketch2image-backend
 
 # Install system-level dependencies
 echo "Installing system dependencies..."
-conda install -y \
-    requests \
-    urllib3 \
-    certifi
+conda install -y requests urllib3 certifi
 
-# Install PyTorch with CUDA 11.8 support
-echo "Installing PyTorch with CUDA 11.8 support (matching Dockerfile)..."
+# Install PyTorch with appropriate version
+echo "Installing PyTorch..."
 if command -v nvidia-smi &> /dev/null; then
     echo "NVIDIA GPU detected - installing CUDA 11.8 version"
     pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu118
-    pip install --no-cache-dir xformers --index-url https://download.pytorch.org/whl/cu118
     DEVICE_SETTING="cuda"
 else
     echo "No NVIDIA GPU detected - installing CPU version"
@@ -63,19 +58,20 @@ fi
 
 echo "✓ PyTorch installed"
 
-# Install remaining requirements from requirements.txt
-echo "Installing remaining requirements from requirements.txt..."
+# Install remaining requirements
+echo "Installing remaining requirements..."
 cd "$PROJECT_DIR/backend"
 pip install --no-cache-dir -r requirements.txt
-
-echo "✓ All requirements.txt dependencies installed"
 
 echo "✓ Backend dependencies installed"
 
 # Create backend .env file
 echo "Creating backend configuration..."
 cat > .env << EOF
+# Device Configuration
 DEVICE=$DEVICE_SETTING
+
+# Backend Settings
 HOST=0.0.0.0
 PORT=8000
 DEBUG_MODE=true
@@ -83,13 +79,17 @@ DEFAULT_MODEL_ID=controlnet_scribble
 NUM_INFERENCE_STEPS=20
 GUIDANCE_SCALE=7.5
 OUTPUT_IMAGE_SIZE=512
+
+# Frontend Settings
 FRONTEND_URL=http://localhost:3000
+
+# Storage Directories
 UPLOAD_DIR=uploads
 OUTPUT_DIR=outputs
 PREPROCESSED_DIR=preprocessed
 
-# -- Hugging Face Token --
-HUGGING_FACE_HUB_TOKEN=YOUR_HUGGING_FACE_TOKEN_HERE
+# Hugging Face Token for private models
+# HUGGING_FACE_HUB_TOKEN=your_token_here
 EOF
 
 echo "✓ Backend configuration created"
@@ -144,89 +144,21 @@ EOF
 
 echo "✓ Frontend configuration created"
 
-# Create startup scripts
-echo ""
-echo "=== Creating Startup Scripts ==="
-
-# Create start script
-cat > "$PROJECT_DIR/start_app.sh" << 'EOF'
-#!/bin/bash
-
-echo "Starting Sketch2Image Application..."
-
-# Get script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Function to cleanup processes
-cleanup() {
-    echo ""
-    echo "Shutting down services..."
-    if [ ! -z "$BACKEND_PID" ]; then
-        kill $BACKEND_PID 2>/dev/null
-    fi
-    if [ ! -z "$FRONTEND_PID" ]; then
-        kill $FRONTEND_PID 2>/dev/null
-    fi
-    exit 0
-}
-
-# Set trap for cleanup
-trap cleanup SIGINT SIGTERM
-
-# Start backend
-echo "Starting backend server..."
-cd "$SCRIPT_DIR/backend"
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate sketch2image-backend
-python main.py &
-BACKEND_PID=$!
-
-# Wait for backend to start
-echo "Waiting for backend to initialize..."
-sleep 5
-
-# Check if backend is running
-if ! kill -0 $BACKEND_PID 2>/dev/null; then
-    echo "Error: Backend failed to start"
-    exit 1
-fi
-
-# Start frontend
-echo "Starting frontend server..."
-cd "$SCRIPT_DIR/frontend"
-conda activate sketch2image-frontend
-npm start &
-FRONTEND_PID=$!
+conda deactivate
 
 echo ""
-echo "===== Application Started Successfully! ====="
-echo "- Backend: http://localhost:8000/api"
-echo "- Frontend: http://localhost:3000"
-echo ""
-echo "Press Ctrl+C to stop both services"
-echo ""
-
-# Wait for processes
-wait $BACKEND_PID $FRONTEND_PID
-EOF
-
-chmod +x "$PROJECT_DIR/start_app.sh"
-
-echo "✓ Startup scripts created"
-
-echo ""
-echo "===== Setup Complete! ====="
+echo "===== Conda Setup Complete! ====="
 echo ""
 echo "Created conda environments:"
 echo "  - sketch2image-backend (Python 3.10 + PyTorch + AI libraries)"
-echo "  - sketch2image-frontend (Node.js 18 + React)"
-echo ""
-echo "Available scripts:"
-echo "  - ./start_app.sh        : Start both backend and frontend"
+echo "  - sketch2image-frontend (Node.js + React)"
 echo ""
 echo "To start the application:"
-echo "  ./start_app.sh"
+echo "  ./scripts/run/start_conda.sh"
+echo ""
+echo "Configuration:"
+echo "  - Device: $DEVICE_SETTING"
+echo "  - Backend will run on: http://localhost:8000"  
+echo "  - Frontend will run on: http://localhost:3000"
 echo ""
 echo "Note: The first image generation will take longer as models are downloaded."
-
-conda deactivate
