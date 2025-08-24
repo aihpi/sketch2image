@@ -19,12 +19,13 @@ yarn-error.log*
 logs
 *.log
 
-backend/uploads/*
-backend/outputs/*
-backend/preprocessed/*
-!backend/uploads/.gitkeep
-!backend/outputs/.gitkeep
-!backend/preprocessed/.gitkeep
+# Dataset directories (you may want to keep these)
+backend/dataset/sketch/*
+backend/dataset/result/*
+backend/dataset/metadata/*
+!backend/dataset/sketch/.gitkeep
+!backend/dataset/result/.gitkeep
+!backend/dataset/metadata/.gitkeep
 
 __pycache__/
 *.py[cod]

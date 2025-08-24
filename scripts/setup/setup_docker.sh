@@ -20,9 +20,9 @@ cd "$PROJECT_DIR"
 
 # Create required directories
 echo "Creating required directories..."
-mkdir -p backend/uploads backend/outputs backend/preprocessed
-chmod -R 755 backend/uploads backend/outputs backend/preprocessed
-echo "✓ Created backend directories with proper permissions"
+mkdir -p backend/dataset/sketch backend/dataset/result backend/dataset/metadata
+chmod -R 755 backend/dataset
+echo "✓ Created dataset directories with proper permissions"
 
 # Detect GPU and configure environment
 echo "Detecting hardware configuration..."
@@ -63,10 +63,8 @@ OUTPUT_IMAGE_SIZE=512
 REACT_APP_API_URL=http://localhost:8000/api
 FRONTEND_URL=http://localhost:3000
 
-# Storage Directories
-UPLOAD_DIR=uploads
-OUTPUT_DIR=outputs
-PREPROCESSED_DIR=preprocessed
+# Dataset Directory (direct save)
+DATASET_DIR=dataset
 
 # Hugging Face Token for private models
 # HUGGING_FACE_HUB_TOKEN=your_token_here
@@ -76,6 +74,11 @@ echo "✓ Environment configuration created"
 
 echo ""
 echo "===== Docker Setup Complete! ====="
+echo ""
+echo "Directory structure:"
+echo "  backend/dataset/sketch/    - Sketch dataset"
+echo "  backend/dataset/result/    - Result dataset"
+echo "  backend/dataset/metadata/  - Generation metadata"
 echo ""
 echo "To start the application:"
 echo "  ./scripts/run/start_docker.sh"

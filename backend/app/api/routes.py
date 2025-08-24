@@ -1,5 +1,8 @@
 import os
-import uuid
+import hashlib
+import json
+import time
+from datetime import datetime
 from typing import List
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import FileResponse
@@ -16,6 +19,23 @@ AVAILABLE_STYLES = [
     StyleOption(id="watercolor", name="Watercolor", prompt_prefix="a watercolor painting of"),
     StyleOption(id="sketch", name="Detailed Sketch", prompt_prefix="a detailed sketch of"),
 ]
+
+def generate_sketch_hash(sketch_content: bytes, model_id: str, style_id: str, description: str) -> str:
+    """Generate a unique hash for this generation request (includes timestamp for uniqueness)"""
+    hasher = hashlib.sha256()
+    hasher.update(sketch_content)
+    hasher.update(model_id.encode('utf-8'))
+    hasher.update(style_id.encode('utf-8'))
+    hasher.update(description.encode('utf-8'))
+    # Add current timestamp to ensure uniqueness for each generation
+    hasher.update(str(time.time()).encode('utf-8'))
+    return hasher.hexdigest()[:16]  # Use first 16 characters for shorter filenames
+
+def save_generation_metadata(sketch_hash: str, metadata: dict):
+    """Save generation metadata to JSON file"""
+    metadata_path = os.path.join(settings.DATASET_METADATA_DIR, f"{sketch_hash}.json")
+    with open(metadata_path, 'w') as f:
+        json.dump(metadata, f, indent=2)
 
 @router.get("/styles", response_model=List[StyleOption])
 async def get_styles():
@@ -63,17 +83,16 @@ async def generate_image(
     
     model_info = settings.AVAILABLE_MODELS[model_id]
     
-    generation_id = str(uuid.uuid4())
+    # Read sketch content
+    sketch_content = await sketch_file.read()
     
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    os.makedirs(settings.OUTPUT_DIR, exist_ok=True)
+    # Generate hash-based ID
+    sketch_hash = generate_sketch_hash(sketch_content, model_id, style_id, description or "")
     
-    sketch_path = os.path.join(settings.UPLOAD_DIR, f"{generation_id}_sketch.png")
-    output_path_prefix = os.path.join(settings.OUTPUT_DIR, f"{generation_id}_output")
-    
+    # Save sketch directly to dataset
+    sketch_path = os.path.join(settings.DATASET_SKETCH_DIR, f"{sketch_hash}.png")
     with open(sketch_path, "wb") as f:
-        content = await sketch_file.read()
-        f.write(content)
+        f.write(sketch_content)
     
     try:
         if description:
@@ -82,19 +101,34 @@ async def generate_image(
             prompt = f"a scene, {style.name}, best quality, extremely detailed"
         
         negative_prompt = model_info.get("config", {}).get("default_negative_prompt", 
-                                                        "low quality, bad anatomy, worst quality, low resolution")
+                                                        "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality")
+        
+        # Create initial metadata
+        metadata = {
+            "sketch_hash": sketch_hash,
+            "prompt": prompt,
+            "model_id": model_id,
+            "style_id": style_id,
+            "timestamp": datetime.now().isoformat(),
+            "generation_params": {
+                "num_inference_steps": model_info.get("config", {}).get("num_inference_steps", 20),
+                "guidance_scale": model_info.get("config", {}).get("guidance_scale", 7.5),
+                "negative_prompt": negative_prompt
+            }
+        }
         
         background_tasks.add_task(
             generate_image_from_sketch,
             sketch_path=sketch_path,
-            output_path_prefix=output_path_prefix,
             prompt=prompt,
             model_id=model_id,
             negative_prompt=negative_prompt,
+            sketch_hash=sketch_hash,
+            metadata=metadata,
         )
         
         return ImageResponse(
-            generation_id=generation_id,
+            generation_id=sketch_hash,
             status="processing",
             message=f"Image generation started using {model_info['name']}. Check status endpoint for completion."
         )
@@ -105,40 +139,33 @@ async def generate_image(
 @router.get("/status/{generation_id}", response_model=ImageResponse)
 async def get_generation_status(generation_id: str):
     """Check the status of an image generation request"""
-    # Check for multiple images (controlnet/t2i models generate 3, flux generates 1)
-    output_paths = []
+    # Check metadata to see if generation is complete
+    metadata_path = os.path.join(settings.DATASET_METADATA_DIR, f"{generation_id}.json")
     
-    # Check for single image first (flux model)
-    single_output_path = os.path.join(settings.OUTPUT_DIR, f"{generation_id}_output.png")
-    if os.path.exists(single_output_path):
-        output_paths = [single_output_path]
-    else:
-        # Check for multiple images (controlnet/t2i models)
-        for i in range(1, 4):  # Check for 3 images
-            multi_output_path = os.path.join(settings.OUTPUT_DIR, f"{generation_id}_output_{i}.png")
-            if os.path.exists(multi_output_path):
-                output_paths.append(multi_output_path)
+    if os.path.exists(metadata_path):
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+        
+        if "file_info" in metadata:
+            # Generation completed
+            result_count = metadata["file_info"]["result_count"]
+            if result_count == 1:
+                image_url = f"/api/images/{generation_id}"
+            else:
+                image_url = f"/api/images/{generation_id}_1"
+                
+            return ImageResponse(
+                generation_id=generation_id,
+                status="completed",
+                message=f"Image generation completed. Generated {result_count} images.",
+                image_url=image_url
+            )
     
-    if output_paths:
-        # Return the first image URL (frontend will fetch others using the same pattern)
-        first_image_path = output_paths[0]
-        if len(output_paths) == 1:
-            image_url = f"/api/images/{generation_id}"
-        else:
-            image_url = f"/api/images/{generation_id}_1"
-            
-        return ImageResponse(
-            generation_id=generation_id,
-            status="completed",
-            message=f"Image generation completed. Generated {len(output_paths)} images.",
-            image_url=image_url
-        )
-    else:
-        return ImageResponse(
-            generation_id=generation_id,
-            status="processing",
-            message="Images are still being generated"
-        )
+    return ImageResponse(
+        generation_id=generation_id,
+        status="processing",
+        message="Images are still being generated"
+    )
 
 @router.get("/images/{image_id}")
 async def get_generated_image(image_id: str):
@@ -146,12 +173,19 @@ async def get_generated_image(image_id: str):
     # Handle both single image and multi-image cases
     if "_" in image_id and image_id.split("_")[-1].isdigit():
         # Multi-image case: generation_id_1, generation_id_2, etc.
-        output_path = os.path.join(settings.OUTPUT_DIR, f"{image_id.replace('_', '_output_')}.png")
+        result_path = os.path.join(settings.DATASET_RESULT_DIR, f"{image_id}.png")
     else:
         # Single image case: generation_id
-        output_path = os.path.join(settings.OUTPUT_DIR, f"{image_id}_output.png")
+        result_path = os.path.join(settings.DATASET_RESULT_DIR, f"{image_id}.png")
     
-    if not os.path.exists(output_path):
+    if not os.path.exists(result_path):
         raise HTTPException(status_code=404, detail="Generated image not found")
     
-    return FileResponse(output_path)
+    # Add cache-busting headers to ensure fresh images are served
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    }
+    
+    return FileResponse(result_path, headers=headers)

@@ -14,9 +14,9 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Create required directories
 echo "Creating required directories..."
-mkdir -p "$PROJECT_DIR/backend/uploads" "$PROJECT_DIR/backend/outputs" "$PROJECT_DIR/backend/preprocessed"
-chmod -R 755 "$PROJECT_DIR/backend/uploads" "$PROJECT_DIR/backend/outputs" "$PROJECT_DIR/backend/preprocessed"
-echo "✓ Created and set permissions for backend directories"
+mkdir -p "$PROJECT_DIR/backend/dataset/sketch" "$PROJECT_DIR/backend/dataset/result" "$PROJECT_DIR/backend/dataset/metadata"
+chmod -R 755 "$PROJECT_DIR/backend/dataset"
+echo "✓ Created dataset directories with proper permissions"
 
 # Setup Backend Environment
 echo ""
@@ -83,10 +83,8 @@ OUTPUT_IMAGE_SIZE=512
 # Frontend Settings
 FRONTEND_URL=http://localhost:3000
 
-# Storage Directories
-UPLOAD_DIR=uploads
-OUTPUT_DIR=outputs
-PREPROCESSED_DIR=preprocessed
+# Dataset Directory (direct save)
+DATASET_DIR=dataset
 
 # Hugging Face Token for private models
 # HUGGING_FACE_HUB_TOKEN=your_token_here
@@ -152,6 +150,11 @@ echo ""
 echo "Created conda environments:"
 echo "  - sketch2image-backend (Python 3.10 + PyTorch + AI libraries)"
 echo "  - sketch2image-frontend (Node.js + React)"
+echo ""
+echo "Directory structure:"
+echo "  backend/dataset/sketch/    - Sketch dataset"
+echo "  backend/dataset/result/    - Result dataset"
+echo "  backend/dataset/metadata/  - Generation metadata"
 echo ""
 echo "To start the application:"
 echo "  ./scripts/run/start_conda.sh"

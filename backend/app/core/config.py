@@ -102,12 +102,15 @@ class Settings:
     GUIDANCE_SCALE: float = float(os.getenv("GUIDANCE_SCALE", "7.5"))
     OUTPUT_IMAGE_SIZE: int = int(os.getenv("OUTPUT_IMAGE_SIZE", "512"))
     
-    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
-    OUTPUT_DIR: str = os.getenv("OUTPUT_DIR", "outputs")
-    PREPROCESSED_DIR: str = os.getenv("PREPROCESSED_DIR", "preprocessed")
+    # Dataset directories (direct save)
+    DATASET_DIR: str = os.getenv("DATASET_DIR", "dataset")
+    DATASET_SKETCH_DIR: str = os.path.join(DATASET_DIR, "sketch")
+    DATASET_RESULT_DIR: str = os.path.join(DATASET_DIR, "result")
+    DATASET_METADATA_DIR: str = os.path.join(DATASET_DIR, "metadata")
 
 settings = Settings()
 
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-os.makedirs(settings.OUTPUT_DIR, exist_ok=True)
-os.makedirs(settings.PREPROCESSED_DIR, exist_ok=True)
+# Create dataset directories
+os.makedirs(settings.DATASET_SKETCH_DIR, exist_ok=True)
+os.makedirs(settings.DATASET_RESULT_DIR, exist_ok=True)
+os.makedirs(settings.DATASET_METADATA_DIR, exist_ok=True)

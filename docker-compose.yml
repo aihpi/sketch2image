@@ -23,9 +23,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-      - ./backend/uploads:/app/uploads
-      - ./backend/outputs:/app/outputs
-      - ./backend/preprocessed:/app/preprocessed
+      - ./backend/dataset:/app/dataset
       - huggingface_cache:/root/.cache/huggingface
     # This section tells Docker to use your NVIDIA GPU
     deploy:

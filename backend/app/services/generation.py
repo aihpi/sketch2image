@@ -1,4 +1,6 @@
 import os
+import json
+import time
 from dotenv import load_dotenv
 import torch
 from PIL import Image, ImageOps, ImageEnhance
@@ -170,9 +172,6 @@ def preprocess_sketch(sketch_path, model_id):
     model_info = settings.AVAILABLE_MODELS[model_id]
     preprocessing = model_info.get("preprocessing", {})
     
-    sketch_filename = os.path.basename(sketch_path)
-    preprocessed_path = os.path.join(settings.PREPROCESSED_DIR, f"{model_id}_{sketch_filename}")
-    
     original_image = Image.open(sketch_path)
     
     detect_resolution = preprocessing.get("detect_resolution", 768)
@@ -183,10 +182,36 @@ def preprocess_sketch(sketch_path, model_id):
         target_resolution=detect_resolution
     )
     
-    processed_image.save(preprocessed_path)
-    print(f"Saved preprocessed sketch for {model_id} to {preprocessed_path}")
-    
     return processed_image
+
+def save_results_and_metadata(sketch_hash: str, images: list, metadata: dict, generation_time: float):
+    """Save generated images and update metadata"""
+    result_files = []
+    
+    # Save generated images
+    for i, image in enumerate(images):
+        if len(images) == 1:
+            result_filename = f"{sketch_hash}.png"
+        else:
+            result_filename = f"{sketch_hash}_{i+1}.png"
+        
+        result_path = os.path.join(settings.DATASET_RESULT_DIR, result_filename)
+        image.save(result_path)
+        result_files.append(result_filename)
+        print(f"Saved result {i+1} to {result_path}")
+    
+    # Update metadata with file info
+    metadata["file_info"] = {
+        "result_count": len(images),
+        "generation_time": generation_time
+    }
+    
+    # Save metadata
+    metadata_path = os.path.join(settings.DATASET_METADATA_DIR, f"{sketch_hash}.json")
+    with open(metadata_path, 'w') as f:
+        json.dump(metadata, f, indent=2)
+    
+    print(f"Saved metadata for {sketch_hash}: {len(images)} results, {generation_time:.2f}s")
 
 def generate_controlnet_batch(pipe, sketch_image, prompt, negative_prompt, config, num_images=3):
     """
@@ -265,23 +290,23 @@ def generate_t2i_sequence(pipe, sketch_image, prompt, negative_prompt, config, n
     return images
 
 async def generate_image_from_sketch(
-    sketch_path, 
-    output_path_prefix,  # Changed to prefix since we now generate multiple images
-    prompt, 
-    model_id="controlnet_scribble",
-    negative_prompt=""
+    sketch_path: str,
+    prompt: str, 
+    model_id: str,
+    negative_prompt: str,
+    sketch_hash: str,
+    metadata: dict
 ):
     """Generate multiple images from a sketch using the selected model"""
     try:
+        start_time = time.time()
+        
         pipe = load_model_pipeline(model_id)
         
         sketch_image = preprocess_sketch(sketch_path, model_id)
         
         model_info = settings.AVAILABLE_MODELS[model_id]
         config = model_info.get("config", {})
-        
-        if not negative_prompt and "default_negative_prompt" in config:
-            negative_prompt = config["default_negative_prompt"]
         
         # Determine number of images to generate (3 for controlnet/t2i, 1 for flux)
         num_images = 1 if model_id == "flux_canny" else 3
@@ -319,19 +344,12 @@ async def generate_image_from_sketch(
             else:
                 images = [output[0] if isinstance(output, (list, tuple)) else output]
         
-        # Save all generated images
-        output_paths = []
-        for i, image in enumerate(images):
-            if num_images == 1:
-                output_path = f"{output_path_prefix}.png"
-            else:
-                output_path = f"{output_path_prefix}_{i+1}.png"
-            
-            image.save(output_path)
-            output_paths.append(output_path)
-            print(f"Saved image {i+1} to {output_path}")
+        generation_time = time.time() - start_time
         
-        return output_paths
+        # Save results and metadata
+        save_results_and_metadata(sketch_hash, images, metadata, generation_time)
+        
+        print(f"Generation completed for {sketch_hash} in {generation_time:.2f}s")
         
     except Exception as e:
         print(f"Error generating images with model {model_id}: {str(e)}")
