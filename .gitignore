@@ -19,7 +19,6 @@ yarn-error.log*
 logs
 *.log
 
-# Dataset directories (you may want to keep these)
 backend/dataset/sketch/*
 backend/dataset/result/*
 backend/dataset/metadata/*
@@ -65,3 +64,5 @@ huggingface/
 .cache/
 .tmp/
 .temp/
+
+backend/batch_test_results/*

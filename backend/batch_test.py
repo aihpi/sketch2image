@@ -63,18 +63,6 @@ def parse_args():
         help="Negative prompt to use for all generations"
     )
     parser.add_argument(
-        "--num-inference-steps", 
-        type=int, 
-        default=20,
-        help="Number of inference steps for each generation"
-    )
-    parser.add_argument(
-        "--guidance-scale", 
-        type=float, 
-        default=7.5,
-        help="Guidance scale for each generation"
-    )
-    parser.add_argument(
         "--device",
         type=str,
         choices=["cuda", "cpu"],
@@ -97,6 +85,12 @@ def parse_args():
         default=42,
         help="Random seed for generation (default: 42)"
     )
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        default=None,
+        help="Specific models to test (e.g., --models controlnet_scribble t2i_adapter_sdxl flux_canny). If not specified, all models are tested."
+    )
     return parser.parse_args()
 
 def setup_test_directories(base_dir: str) -> Dict[str, str]:
@@ -115,14 +109,10 @@ def setup_test_directories(base_dir: str) -> Dict[str, str]:
     comparison_dir = os.path.join(output_dir, "comparisons")
     os.makedirs(comparison_dir, exist_ok=True)
     
-    preprocessed_dir = os.path.join(output_dir, "preprocessed")
-    os.makedirs(preprocessed_dir, exist_ok=True)
-    
     return {
         "base": output_dir,
         "models": model_dirs,
-        "comparisons": comparison_dir,
-        "preprocessed": preprocessed_dir
+        "comparisons": comparison_dir
     }
 
 def get_sketch_files(sketches_dir: str) -> List[str]:
@@ -225,28 +215,29 @@ def generate_and_save_image(
     style: Dict[str, Any],
     prompt: str,
     negative_prompt: str,
-    num_inference_steps: int,
-    guidance_scale: float,
-    preprocessed_dir: str,
     device: str,
     seed: int = 42
-) -> float:
+) -> tuple:
     """
-    Generate an image from a sketch and save it, returning generation time
+    Generate an image from a sketch and save it, returning generation time and model config
     """
     start_loading = time.time()
     pipe = load_model_pipeline(model_id)
     loading_time = time.time() - start_loading
     
-    sketch_filename = os.path.basename(sketch_path)
-    preprocessed_path = os.path.join(preprocessed_dir, f"{model_id}_{style.id}_{sketch_filename}")
-    
     sketch_image = preprocess_sketch(sketch_path, model_id)
-    sketch_image.save(preprocessed_path)
     
     full_prompt = f"{prompt}, {style.name}, best quality, extremely detailed"
     
     generator = torch.Generator(device=device).manual_seed(seed)
+    
+    # Get model-specific configuration from config.py
+    model_info = settings.AVAILABLE_MODELS[model_id]
+    config = model_info.get("config", {})
+    
+    # Use model-specific settings from config.py
+    num_inference_steps = config.get("num_inference_steps", 20)
+    guidance_scale = config.get("guidance_scale", 7.5)
     
     params = {
         "prompt": full_prompt,
@@ -256,20 +247,20 @@ def generate_and_save_image(
         "generator": generator
     }
 
-    if model_id != "flux_canny":
-        params["negative_prompt"] = negative_prompt
-
-    model_info = settings.AVAILABLE_MODELS[model_id]
-    config = model_info.get("config", {})
-
+    # Handle model-specific parameters
     if model_id == "t2i_adapter_sdxl":
         params["adapter_conditioning_scale"] = config.get("adapter_conditioning_scale", 0.9)
         params["adapter_conditioning_factor"] = config.get("adapter_conditioning_factor", 0.9)
+        params["negative_prompt"] = negative_prompt
     
     elif model_id == "flux_canny":
         params["control_image"] = params.pop("image")
         params["height"] = config.get("output_height", 1024)
         params["width"] = config.get("output_width", 1024)
+        # Flux doesn't use negative prompts the same way
+    else:
+        # For controlnet_scribble and other models that support negative prompts
+        params["negative_prompt"] = negative_prompt
 
     start_time = time.time()
     output = pipe(**params)
@@ -282,130 +273,11 @@ def generate_and_save_image(
     
     output_image.save(output_path)
     
-    return generation_time, loading_time
+    return generation_time, loading_time, num_inference_steps, guidance_scale
 
 def create_summary_plots(csv_path: str, output_dir: str) -> None:
     """Create summary plots based on generation time data"""
-    data = []
-    with open(csv_path, 'r', newline='') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            if row['Generation Time (s)'] == "ERROR":
-                continue
-                
-            row['Generation Time (s)'] = float(row['Generation Time (s)'])
-            row['Loading Time (s)'] = float(row['Loading Time (s)'])
-            data.append(row)
-    
-    if not data:
-        print("No data available for summary plots")
-        return
-    
-    plots_dir = os.path.join(output_dir, "summary_plots")
-    os.makedirs(plots_dir, exist_ok=True)
-    
-    
-    model_times = {}
-    for row in data:
-        model_id = row['Model ID']
-        if model_id not in model_times:
-            model_times[model_id] = []
-        model_times[model_id].append(row['Generation Time (s)'])
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    models = list(model_times.keys())
-    avg_times = [np.mean(model_times[model]) for model in models]
-    std_times = [np.std(model_times[model]) for model in models]
-    
-    model_names = [settings.AVAILABLE_MODELS[model]['name'] for model in models]
-    
-    ax.bar(model_names, avg_times, yerr=std_times, capsize=10)
-    ax.set_ylabel('Average Generation Time (s)')
-    ax.set_title('Average Generation Time by Model')
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-    plt.savefig(os.path.join(plots_dir, 'model_times.png'))
-    plt.close(fig)
-    
-    style_model_times = {}
-    for row in data:
-        model_id = row['Model ID']
-        style_id = row['Style ID']
-        key = f"{model_id}_{style_id}"
-        if key not in style_model_times:
-            style_model_times[key] = []
-        style_model_times[key].append(row['Generation Time (s)'])
-    
-    styles = list(set(row['Style ID'] for row in data))
-    x = np.arange(len(models))
-    width = 0.8 / len(styles)
-    
-    fig, ax = plt.subplots(figsize=(12, 7))
-    
-    for i, style in enumerate(styles):
-        style_name = next((s.name for s in AVAILABLE_STYLES if s.id == style), style)
-        style_times = []
-        for model in models:
-            key = f"{model}_{style}"
-            if key in style_model_times:
-                style_times.append(np.mean(style_model_times[key]))
-            else:
-                style_times.append(0)
-        
-        ax.bar(x + i * width - width * (len(styles) - 1) / 2, style_times, width, label=style_name)
-    
-    ax.set_ylabel('Average Generation Time (s)')
-    ax.set_title('Generation Time by Model and Style')
-    ax.set_xticks(x)
-    ax.set_xticklabels(model_names, rotation=45, ha='right')
-    ax.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(plots_dir, 'style_model_times.png'))
-    plt.close(fig)
-    
-    total_model_times = {model: sum(times) for model, times in model_times.items()}
-    fig, ax = plt.subplots(figsize=(10, 10))
-    model_names = [settings.AVAILABLE_MODELS[model]['name'] for model in total_model_times.keys()]
-    ax.pie(
-        total_model_times.values(), 
-        labels=model_names, 
-        autopct='%1.1f%%',
-        startangle=90
-    )
-    ax.axis('equal')
-    plt.title('Total Generation Time Distribution by Model')
-    plt.savefig(os.path.join(plots_dir, 'time_distribution_pie.png'))
-    plt.close(fig)
-    
-    fig, ax = plt.subplots(figsize=(12, 8))
-    box_data = [model_times[model] for model in models]
-    ax.boxplot(box_data, labels=model_names)
-    ax.set_ylabel('Generation Time (s)')
-    ax.set_title('Distribution of Generation Times by Model')
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-    plt.savefig(os.path.join(plots_dir, 'time_boxplot.png'))
-    plt.close(fig)
-    
-    if len(set(row['Sketch'] for row in data)) > 1:
-        fig, ax = plt.subplots(figsize=(12, 8))
-        sketches = list(set(row['Sketch'] for row in data))
-        
-        for sketch in sketches:
-            sketch_data = [row for row in data if row['Sketch'] == sketch]
-            times = [row['Generation Time (s)'] for row in sketch_data]
-            avg_time = np.mean(times)
-            ax.scatter([sketch] * len(sketch_data), times, alpha=0.5, label=None)
-            ax.scatter([sketch], [avg_time], color='red', s=100, label=f"{sketch} (avg)")
-        
-        ax.set_ylabel('Generation Time (s)')
-        ax.set_title('Generation Times by Sketch')
-        plt.xticks(rotation=90)
-        plt.tight_layout()
-        plt.savefig(os.path.join(plots_dir, 'sketch_times.png'))
-        plt.close(fig)
-    
-    print(f"Created summary plots in {plots_dir}")
+    pass  # Removed as requested
 
 def save_test_config(output_dir: str, args: argparse.Namespace) -> None:
     """Save the test configuration for reproducibility"""
@@ -415,6 +287,7 @@ def save_test_config(output_dir: str, args: argparse.Namespace) -> None:
         "cuda_available": torch.cuda.is_available(),
         "device_used": args.device if args.device else settings.DEVICE,
         "available_models": {k: v["name"] for k, v in settings.AVAILABLE_MODELS.items()},
+        "models_tested": args.models if args.models else list(settings.AVAILABLE_MODELS.keys()),
         "available_styles": [s.name for s in AVAILABLE_STYLES],
         "base_seed": args.seed,
         "seed_strategy": "different_seed_per_sketch"
@@ -444,6 +317,18 @@ def main():
     if args.device:
         settings.DEVICE = args.device
     
+    # Determine which models to test
+    models_to_test = args.models if args.models else list(settings.AVAILABLE_MODELS.keys())
+    
+    # Validate models
+    invalid_models = [m for m in models_to_test if m not in settings.AVAILABLE_MODELS]
+    if invalid_models:
+        print(f"Error: Invalid models specified: {invalid_models}")
+        print(f"Available models: {list(settings.AVAILABLE_MODELS.keys())}")
+        exit(1)
+    
+    print(f"Testing models: {models_to_test}")
+    
     dirs = setup_test_directories(args.output_dir)
     
     sketch_files = get_sketch_files(args.sketches_dir)
@@ -461,7 +346,7 @@ def main():
     else:
         print(f"No prompt file provided. Using default prompt for all sketches: '{args.prompt}'")
     
-    csv_headers = ["Sketch", "Prompt", "Model ID", "Style ID", "Style Name", "Seed", "Generation Time (s)", "Loading Time (s)"]
+    csv_headers = ["Sketch", "Prompt", "Model ID", "Model Name", "Style ID", "Style Name", "Seed", "Inference Steps", "Guidance Scale", "Generation Time (s)", "Loading Time (s)"]
     csv_path = create_results_csv(dirs["base"], csv_headers)
     
     save_test_config(dirs["base"], args)
@@ -484,7 +369,7 @@ def main():
         
         sketch_results[sketch_path] = {}
         
-        for model_id in settings.AVAILABLE_MODELS:
+        for model_id in models_to_test:  # Changed from settings.AVAILABLE_MODELS to models_to_test
             model_dir = dirs["models"][model_id]
             sketch_results[sketch_path][model_id] = {}
             
@@ -503,16 +388,13 @@ def main():
                     continue
                 
                 try:
-                    generation_time, loading_time = generate_and_save_image(
+                    generation_time, loading_time, inference_steps, guidance_scale = generate_and_save_image(
                         sketch_path=sketch_path,
                         output_path=output_path,
                         model_id=model_id,
                         style=style,
                         prompt=sketch_prompt,
                         negative_prompt=args.negative_prompt,
-                        num_inference_steps=args.num_inference_steps,
-                        guidance_scale=args.guidance_scale,
-                        preprocessed_dir=dirs["preprocessed"],
                         device=settings.DEVICE,
                         seed=sketch_seed
                     )
@@ -521,26 +403,35 @@ def main():
                     
                     sketch_results[sketch_path][model_id][style_id] = output_path
                     
+                    model_name = settings.AVAILABLE_MODELS[model_id]['name']
+                    
                     append_to_csv(csv_path, [
                         sketch_name,
                         sketch_prompt,
                         model_id,
+                        model_name,
                         style_id,
                         style_name,
                         sketch_seed,
+                        inference_steps,
+                        guidance_scale,
                         f"{generation_time:.4f}",
                         f"{loading_time:.4f}"
                     ])
                     
                 except Exception as e:
                     print(f"    Error generating image: {str(e)}")
+                    model_name = settings.AVAILABLE_MODELS[model_id]['name']
                     append_to_csv(csv_path, [
                         sketch_name,
                         sketch_prompt, 
                         model_id,
+                        model_name,
                         style_id,
                         style_name,
-                        sketch_seed,  
+                        sketch_seed,
+                        "ERROR",
+                        "ERROR",
                         "ERROR",
                         "ERROR"
                     ])
@@ -558,13 +449,9 @@ def main():
         json.dump(sketch_seeds, f, indent=2)
     print(f"Saved sketch seed mapping to {seeds_path}")
     
-    try:
-        create_summary_plots(csv_path, dirs["base"])
-    except Exception as e:
-        print(f"Error creating summary plots: {str(e)}")
-    
     print(f"\nAll done! Results saved to {dirs['base']}")
     print(f"Generation times recorded in {csv_path}")
+    print(f"Models tested: {models_to_test}")
 
 if __name__ == "__main__":
     main()
