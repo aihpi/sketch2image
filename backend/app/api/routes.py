@@ -5,10 +5,12 @@ import time
 from datetime import datetime
 from typing import List
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from app.core.config import settings
 from app.services.generation import generate_image_from_sketch, load_model_pipeline
+from app.services.progress_tracker import update_progress, get_progress, remove_progress
 from app.models.image import ImageResponse, StyleOption, ModelOption
+import asyncio
 
 router = APIRouter()
 
@@ -61,6 +63,66 @@ async def get_models():
         )
     return models
 
+@router.get("/progress/{generation_id}")
+async def get_progress_stream(generation_id: str):
+    """Stream progress updates for a generation using Server-Sent Events"""
+    
+    async def event_stream():
+        yield f"data: {json.dumps({'type': 'connected', 'generation_id': generation_id})}\n\n"
+        
+        start_time = time.time()
+        last_progress = None
+        
+        while True:
+            metadata_path = os.path.join(settings.DATASET_METADATA_DIR, f"{generation_id}.json")
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+                
+                if "file_info" in metadata:
+                    yield f"data: {json.dumps({'type': 'completed', 'generation_id': generation_id})}\n\n"
+                    remove_progress(generation_id)
+                    break
+            
+            current_progress = get_progress(generation_id)
+            
+            if current_progress and current_progress != last_progress:
+                # Calculate ETA if not provided
+                if current_progress.get('eta_seconds') is None and current_progress['current_step'] > 0:
+                    elapsed = time.time() - start_time
+                    steps_per_second = current_progress['current_step'] / elapsed
+                    remaining_steps = current_progress['total_steps'] - current_progress['current_step']
+                    eta_seconds = int(remaining_steps / steps_per_second) if steps_per_second > 0 else None
+                    current_progress['eta_seconds'] = eta_seconds
+                
+                progress_data = {
+                    'type': 'progress',
+                    'generation_id': generation_id,
+                    **current_progress
+                }
+                yield f"data: {json.dumps(progress_data)}\n\n"
+                last_progress = current_progress.copy()
+            
+            await asyncio.sleep(0.5)  # Check every 500ms
+            
+            # Timeout after 5 minutes
+            if time.time() - start_time > 300:
+                yield f"data: {json.dumps({'type': 'timeout', 'generation_id': generation_id})}\n\n"
+                remove_progress(generation_id)
+                break
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "text/event-stream",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Cache-Control"
+        }
+    )
+
 @router.post("/generate", response_model=ImageResponse)
 async def generate_image(
     background_tasks: BackgroundTasks,
@@ -88,6 +150,9 @@ async def generate_image(
     
     # Generate hash-based ID
     sketch_hash = generate_sketch_hash(sketch_content, model_id, style_id, description or "")
+    
+    total_steps = model_info.get("config", {}).get("num_inference_steps", 20)
+    update_progress(sketch_hash, 0, total_steps, "initializing")
     
     # Save sketch directly to dataset
     sketch_path = os.path.join(settings.DATASET_SKETCH_DIR, f"{sketch_hash}.png")
@@ -130,10 +195,11 @@ async def generate_image(
         return ImageResponse(
             generation_id=sketch_hash,
             status="processing",
-            message=f"Image generation started using {model_info['name']}. Check status endpoint for completion."
+            message=f"Image generation started using {model_info['name']}. Connect to progress stream for real-time updates."
         )
     
     except Exception as e:
+        remove_progress(sketch_hash)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/status/{generation_id}", response_model=ImageResponse)

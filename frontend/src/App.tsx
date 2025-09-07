@@ -6,7 +6,6 @@ import DrawingCanvas from './components/DrawingCanvas';
 import StyleSelector from './components/StyleSelector';
 import ModelSelector from './components/ModelSelector';
 import ImageResult from './components/ImageResult';
-import LoadingOverlay from './components/LoadingOverlay';
 import Notification from './components/Notification';
 import { ResetProvider } from './ResetContext';
 
@@ -280,7 +279,14 @@ const App: React.FC = () => {
           </div>
         </footer>
 
-        {isLoading && <LoadingOverlay />}
+        {/* Only show old loading overlay if isLoading is true (for backward compatibility/fallback) */}
+        {isLoading && (
+          <div className="loading-overlay">
+            <div className="spinner"></div>
+            <p className="loading-text">Generating your image...</p>
+            <p className="loading-subtext">This may take 10-30 seconds</p>
+          </div>
+        )}
       </div>
     </ResetProvider>
   );

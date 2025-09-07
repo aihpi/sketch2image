@@ -3,6 +3,7 @@ import { GenerationResult } from '../types';
 import { checkGenerationStatus } from '../services/api';
 import { useReset } from '../ResetContext';
 import Icon from './Icon';
+import ProgressOverlay from './ProgressOverlay';
 
 interface ImageResultProps {
   generationResult: GenerationResult | null;
@@ -18,10 +19,10 @@ const ImageResult: React.FC<ImageResultProps> = ({
   onRegenerate 
 }) => {
   const [result, setResult] = useState<GenerationResult | null>(null);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [showProgress, setShowProgress] = useState(false);
   const { resetTrigger } = useReset();
 
   useEffect(() => {
@@ -30,31 +31,25 @@ const ImageResult: React.FC<ImageResultProps> = ({
       setGenerationResult(null);
       setSelectedImageIndex(0);
       setImageUrls([]);
+      setShowProgress(false);
     }
   }, [resetTrigger, setGenerationResult]);
 
   useEffect(() => {
     if (generationResult) {
       setResult(generationResult);
-      setSelectedImageIndex(0); // Reset to first image when new results come in
-      setImageUrls([]); // Clear previous URLs
+      setSelectedImageIndex(0);
+      setImageUrls([]);
       
       if (generationResult.status === 'processing') {
-        startStatusPolling(generationResult.generation_id);
+        setShowProgress(true);
+        setIsLoading(false); // Turn off the old loading overlay
       } else if (generationResult.status === 'completed' && generationResult.image_url) {
-        // Generate URLs for multiple images
+        setShowProgress(false);
         generateImageUrls(generationResult.generation_id, generationResult.image_url);
       }
     }
-  }, [generationResult]);
-  
-  useEffect(() => {
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
-    };
-  }, [pollingInterval]);
+  }, [generationResult, setIsLoading]);
 
   const generateImageUrls = (generationId: string, firstImageUrl: string) => {
     // Check if this is a multi-image result (ends with _1)
@@ -70,37 +65,29 @@ const ImageResult: React.FC<ImageResultProps> = ({
       setImageUrls([firstImageUrl]);
     }
   };
-  
-  const startStatusPolling = (generationId: string) => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-    }
+
+  const handleProgressComplete = async () => {
+    setShowProgress(false);
     
-    setIsLoading(true);
-    
-    const interval = setInterval(async () => {
+    if (result?.generation_id) {
       try {
-        const updatedResult = await checkGenerationStatus(generationId);
+        const updatedResult = await checkGenerationStatus(result.generation_id);
         setResult(updatedResult);
         
-        if (updatedResult.status === 'completed') {
-          clearInterval(interval);
-          setPollingInterval(null);
-          setIsLoading(false);
-          
-          if (updatedResult.image_url) {
-            generateImageUrls(generationId, updatedResult.image_url);
-          }
+        if (updatedResult.status === 'completed' && updatedResult.image_url) {
+          generateImageUrls(updatedResult.generation_id, updatedResult.image_url);
         }
       } catch (error) {
-        console.error('Error checking generation status:', error);
-        clearInterval(interval);
-        setPollingInterval(null);
-        setIsLoading(false);
+        console.error('Error checking final status:', error);
       }
-    }, 2000);
-    
-    setPollingInterval(interval);
+    }
+  };
+
+  const handleProgressError = (error: string) => {
+    setShowProgress(false);
+    setIsLoading(false);
+    console.error('Progress error:', error);
+    // You might want to show this error to the user via notification
   };
 
   const handleDownload = () => {
@@ -157,8 +144,26 @@ const ImageResult: React.FC<ImageResultProps> = ({
       document.body.style.overflow = 'unset';
     };
   }, [isMaximized]);
+
+  // Show progress overlay during generation
+  if (showProgress && result?.generation_id) {
+    return (
+      <>
+        <div className="image-result empty">
+          <div className="placeholder">
+            <p>generating your image...</p>
+          </div>
+        </div>
+        <ProgressOverlay 
+          generationId={result.generation_id}
+          onComplete={handleProgressComplete}
+          onError={handleProgressError}
+        />
+      </>
+    );
+  }
   
-  if (!result || result.status === 'processing') {
+  if (!result || (!showProgress && result.status === 'processing')) {
     return (
       <>
         <div className="image-result empty">

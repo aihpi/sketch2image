@@ -1545,3 +1545,181 @@ a:hover {
     margin-bottom: var(--space-xs);
   }
 }
+
+/* Progress Overlay Styles */
+.progress-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xl);
+  color: var(--text-on-color);
+  text-align: center;
+  max-width: 400px;
+  padding: var(--space-2xl);
+}
+
+.progress-circle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-percentage {
+  position: absolute;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--text-on-color);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.progress-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+.progress-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-on-color);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.progress-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.step-info {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.eta-info {
+  font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+}
+
+.progress-bar-container {
+  width: 100%;
+  max-width: 300px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--yellow), var(--cocoa-brown));
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: var(--space-md);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.status-indicator.connected {
+  background-color: var(--pigment-green);
+  box-shadow: 0 0 8px rgba(0, 162, 81, 0.6);
+}
+
+.status-indicator.disconnected {
+  background-color: var(--cocoa-brown);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Mobile adjustments for progress overlay */
+@media (max-width: 768px) {
+  .progress-container {
+    gap: var(--space-xl);
+    padding: var(--space-xl);
+    max-width: 320px;
+  }
+  
+  .progress-circle svg {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .progress-percentage {
+    font-size: var(--text-xl);
+  }
+  
+  .progress-title {
+    font-size: var(--text-lg);
+  }
+  
+  .step-info {
+    font-size: var(--text-sm);
+  }
+  
+  .eta-info {
+    font-size: var(--text-xs);
+  }
+  
+  .progress-bar-container {
+    max-width: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .progress-container {
+    gap: var(--space-lg);
+    padding: var(--space-lg);
+    max-width: 280px;
+  }
+  
+  .progress-circle svg {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .progress-percentage {
+    font-size: var(--text-lg);
+  }
+  
+  .progress-title {
+    font-size: var(--text-base);
+  }
+  
+  .progress-bar-container {
+    max-width: 200px;
+  }
+}

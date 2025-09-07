@@ -17,6 +17,7 @@ from diffusers import (
 from diffusers.utils import load_image
 import torchvision.transforms as T
 from app.core.config import settings
+from app.services.progress_tracker import update_progress
 
 load_dotenv()
 model_cache = {}
@@ -57,6 +58,67 @@ def simple_sketch_inverter(image, target_resolution=768):
         if isinstance(image, str):
             return Image.open(image).convert("RGB")
         return image.convert("RGB")
+
+def get_pipeline_callback_params(pipe, generation_id: str, total_steps: int, image_index: int = 0, total_images: int = 1):
+    """
+    Get the appropriate callback parameters for different pipeline types
+    Returns a tuple: (callback_params_dict, supports_callbacks)
+    """
+    pipeline_type = type(pipe).__name__
+    
+    def legacy_callback(step: int, timestep: int, latents):
+        """Legacy callback function for older pipelines"""
+        if total_images > 1:
+            overall_step = (image_index * total_steps) + step + 1
+            overall_total = total_steps * total_images
+            stage = f"generating image {image_index + 1}/{total_images}"
+        else:
+            overall_step = step + 1
+            overall_total = total_steps
+            stage = "generating"
+        
+        update_progress(generation_id, overall_step, overall_total, stage)
+    
+    def modern_callback_on_step_end(pipe, step: int, timestep: int, callback_kwargs):
+        """Modern callback function for newer pipelines"""
+        if total_images > 1:
+            overall_step = (image_index * total_steps) + step + 1
+            overall_total = total_steps * total_images
+            stage = f"generating image {image_index + 1}/{total_images}"
+        else:
+            overall_step = step + 1
+            overall_total = total_steps
+            stage = "generating"
+        
+        update_progress(generation_id, overall_step, overall_total, stage)
+        return callback_kwargs
+    
+    # Pipeline-specific callback handling
+    if pipeline_type == "StableDiffusionControlNetPipeline":
+        # ControlNet supports both old and new callbacks, prefer new one
+        return {
+            "callback_on_step_end": modern_callback_on_step_end
+        }, True
+        
+    elif pipeline_type == "StableDiffusionXLAdapterPipeline":
+        # T2I Adapter SDXL uses legacy callback system
+        return {
+            "callback": legacy_callback,
+            "callback_steps": 1
+        }, True
+        
+    elif pipeline_type == "FluxControlPipeline":
+        # Flux supports modern callbacks
+        return {
+            "callback_on_step_end": modern_callback_on_step_end
+        }, True
+        
+    else:
+        # Unknown pipeline type, try modern first, then legacy
+        print(f"Unknown pipeline type: {pipeline_type}, attempting modern callback")
+        return {
+            "callback_on_step_end": modern_callback_on_step_end
+        }, True
 
 def load_model_pipeline(model_id):
     """Load and cache model pipeline based on the model ID"""
@@ -213,7 +275,7 @@ def save_results_and_metadata(sketch_hash: str, images: list, metadata: dict, ge
     
     print(f"Saved metadata for {sketch_hash}: {len(images)} results, {generation_time:.2f}s")
 
-def generate_controlnet_batch(pipe, sketch_image, prompt, negative_prompt, config, num_images=3):
+def generate_controlnet_batch(pipe, sketch_image, prompt, negative_prompt, config, num_images, generation_id):
     """
     Generate multiple images using ControlNet with batch processing for efficiency
     """
@@ -232,26 +294,42 @@ def generate_controlnet_batch(pipe, sketch_image, prompt, negative_prompt, confi
         generator.manual_seed(torch.randint(0, 2**42, (1,)).item())
         generators.append(generator)
     
+    total_steps = config.get("num_inference_steps", 20)
+    callback_params, supports_callbacks = get_pipeline_callback_params(pipe, generation_id, total_steps, 0, 1)
+    
     params = {
         "prompt": batch_prompt,
         "image": batch_image,
-        "num_inference_steps": config.get("num_inference_steps", 20),
+        "num_inference_steps": total_steps,
         "guidance_scale": config.get("guidance_scale", 7.5),
         "generator": generators
     }
+    
+    # Add callback parameters if supported
+    if supports_callbacks:
+        params.update(callback_params)
     
     if batch_negative_prompt:
         params["negative_prompt"] = batch_negative_prompt
     
     print(f"Starting batch generation with ControlNet...")
-    output = pipe(**params)
+    try:
+        output = pipe(**params)
+    except TypeError as e:
+        if "callback" in str(e):
+            print(f"Callback not supported for this pipeline version, continuing without progress updates: {e}")
+            # Retry without callback
+            params_no_callback = {k: v for k, v in params.items() if not k.startswith('callback')}
+            output = pipe(**params_no_callback)
+        else:
+            raise e
     
     if hasattr(output, "images"):
         return output.images
     else:
         return output if isinstance(output, list) else [output]
 
-def generate_t2i_sequence(pipe, sketch_image, prompt, negative_prompt, config, num_images=3):
+def generate_t2i_sequence(pipe, sketch_image, prompt, negative_prompt, config, num_images, generation_id):
     """
     Generate multiple images using T2I Adapter with optimized sequential generation
     """
@@ -259,9 +337,13 @@ def generate_t2i_sequence(pipe, sketch_image, prompt, negative_prompt, config, n
     
     images = []
     device = pipe.device
+    total_steps_per_image = config.get("num_inference_steps", 40)
     
     for i in range(num_images):
         print(f"Generating image {i+1}/{num_images}")
+        
+        # Get pipeline-specific callback parameters
+        callback_params, supports_callbacks = get_pipeline_callback_params(pipe, generation_id, total_steps_per_image, i, num_images)
         
         # Generate different seed for each image
         generator = torch.Generator(device=device)
@@ -270,17 +352,34 @@ def generate_t2i_sequence(pipe, sketch_image, prompt, negative_prompt, config, n
         params = {
             "prompt": prompt,
             "image": sketch_image,
-            "num_inference_steps": config.get("num_inference_steps", 40),
+            "num_inference_steps": total_steps_per_image,
             "guidance_scale": config.get("guidance_scale", 7.5),
             "generator": generator,
             "adapter_conditioning_scale": config.get("adapter_conditioning_scale", 0.9),
             "adapter_conditioning_factor": config.get("adapter_conditioning_factor", 0.9)
         }
         
+        # Add callback parameters if supported
+        if supports_callbacks:
+            params.update(callback_params)
+        
         if negative_prompt:
             params["negative_prompt"] = negative_prompt
         
-        output = pipe(**params)
+        try:
+            output = pipe(**params)
+        except TypeError as e:
+            if "callback" in str(e):
+                print(f"Callback not supported for this pipeline version, continuing without progress updates: {e}")
+                # Retry without callback
+                params_no_callback = {k: v for k, v in params.items() if not k.startswith('callback')}
+                output = pipe(**params_no_callback)
+                # Manual progress update since callback failed
+                overall_step = (i + 1) * total_steps_per_image
+                overall_total = total_steps_per_image * num_images
+                update_progress(generation_id, overall_step, overall_total, f"completed image {i+1}/{num_images}")
+            else:
+                raise e
         
         if hasattr(output, "images") and len(output.images) > 0:
             images.append(output.images[0])
@@ -289,7 +388,7 @@ def generate_t2i_sequence(pipe, sketch_image, prompt, negative_prompt, config, n
     
     return images
 
-async def generate_image_from_sketch(
+def generate_image_from_sketch(
     sketch_path: str,
     prompt: str, 
     model_id: str,
@@ -301,11 +400,17 @@ async def generate_image_from_sketch(
     try:
         start_time = time.time()
         
+        # Update progress: loading model
+        model_info = settings.AVAILABLE_MODELS[model_id]
+        total_steps = model_info.get("config", {}).get("num_inference_steps", 20)
+        update_progress(sketch_hash, 0, total_steps, "loading model")
+        
         pipe = load_model_pipeline(model_id)
         
+        # Update progress: preprocessing
+        update_progress(sketch_hash, 0, total_steps, "preprocessing sketch")
         sketch_image = preprocess_sketch(sketch_path, model_id)
         
-        model_info = settings.AVAILABLE_MODELS[model_id]
         config = model_info.get("config", {})
         
         # Determine number of images to generate (3 for controlnet/t2i, 1 for flux)
@@ -313,18 +418,28 @@ async def generate_image_from_sketch(
         
         print(f"Generating {num_images} images with model {model_id}")
         
+        # Update progress: starting generation
+        if num_images > 1:
+            total_generation_steps = total_steps * num_images
+        else:
+            total_generation_steps = total_steps
+            
+        update_progress(sketch_hash, 0, total_generation_steps, "starting generation")
+        
         if model_id == "controlnet_scribble":
             # Use batch generation for ControlNet
             images = generate_controlnet_batch(
-                pipe, sketch_image, prompt, negative_prompt, config, num_images
+                pipe, sketch_image, prompt, negative_prompt, config, num_images, sketch_hash
             )
         elif model_id == "t2i_adapter_sdxl":
             # Use optimized sequential generation for T2I
             images = generate_t2i_sequence(
-                pipe, sketch_image, prompt, negative_prompt, config, num_images
+                pipe, sketch_image, prompt, negative_prompt, config, num_images, sketch_hash
             )
         elif model_id == "flux_canny":
             # Single image generation for Flux
+            callback_params, supports_callbacks = get_pipeline_callback_params(pipe, sketch_hash, total_steps)
+            
             params = {
                 "prompt": prompt,
                 "control_image": sketch_image,
@@ -334,10 +449,25 @@ async def generate_image_from_sketch(
                 "guidance_scale": config.get("guidance_scale", 30.0)
             }
             
+            # Add callback parameters if supported
+            if supports_callbacks:
+                params.update(callback_params)
+            
             if negative_prompt:
                 params["negative_prompt"] = negative_prompt
             
-            output = pipe(**params)
+            try:
+                output = pipe(**params)
+            except TypeError as e:
+                if "callback" in str(e):
+                    print(f"Callback not supported for this pipeline version, continuing without progress updates: {e}")
+                    # Retry without callback
+                    params_no_callback = {k: v for k, v in params.items() if not k.startswith('callback')}
+                    output = pipe(**params_no_callback)
+                    # Manual progress update since callback failed
+                    update_progress(sketch_hash, total_steps, total_steps, "completed generation")
+                else:
+                    raise e
             
             if hasattr(output, "images") and len(output.images) > 0:
                 images = [output.images[0]]
@@ -346,6 +476,10 @@ async def generate_image_from_sketch(
         
         generation_time = time.time() - start_time
         
+        # Update progress: saving results
+        final_step = total_generation_steps if num_images > 1 else total_steps
+        update_progress(sketch_hash, final_step, final_step, "saving results")
+        
         # Save results and metadata
         save_results_and_metadata(sketch_hash, images, metadata, generation_time)
         
@@ -353,4 +487,6 @@ async def generate_image_from_sketch(
         
     except Exception as e:
         print(f"Error generating images with model {model_id}: {str(e)}")
+        # Update progress with error
+        update_progress(sketch_hash, 0, 1, "error")
         raise e
