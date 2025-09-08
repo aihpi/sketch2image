@@ -62,6 +62,12 @@ def simple_sketch_inverter(image, target_resolution=768):
 def decode_latents_to_image(pipe, latents):
     """Decode latents to PIL Image for intermediate visualization"""
     try:
+        # Skip intermediate image generation for FLUX models
+        pipeline_type = type(pipe).__name__
+        if pipeline_type == "FluxControlPipeline":
+            print("Skipping intermediate image generation for FLUX model (incompatible latent format)")
+            return None
+        
         # Check if we have a VAE to decode with
         if hasattr(pipe, 'vae') and pipe.vae is not None:
             # Make sure latents are in the right format
@@ -106,9 +112,9 @@ def get_pipeline_callback_params(pipe, generation_id: str, total_steps: int, ima
             overall_total = total_steps
             stage = "generating"
         
-        # Decode intermediate image every few steps
+        # Decode intermediate image every few steps (skip for FLUX)
         intermediate_image = None
-        if step > 0:  # Show ~10 intermediate images
+        if step > 0 and pipeline_type != "FluxControlPipeline":
             intermediate_image = decode_latents_to_image(pipe, latents)
         
         update_progress(generation_id, overall_step, overall_total, stage, intermediate_image=intermediate_image)
@@ -124,9 +130,9 @@ def get_pipeline_callback_params(pipe, generation_id: str, total_steps: int, ima
             overall_total = total_steps
             stage = "generating"
         
-        # Decode intermediate image every few steps
+        # Decode intermediate image every few steps (skip for FLUX)
         intermediate_image = None
-        if step > 0:  # Show ~10 intermediate images
+        if step > 0 and pipeline_type != "FluxControlPipeline":
             if 'latents' in callback_kwargs:
                 intermediate_image = decode_latents_to_image(pipe_obj, callback_kwargs['latents'])
         
