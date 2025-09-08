@@ -1,6 +1,10 @@
 import time
+import os
+import base64
 from typing import Optional, Dict, Any
 import threading
+from PIL import Image
+import io
 
 _progress_store: Dict[str, Dict[str, Any]] = {}
 _lock = threading.Lock()
@@ -10,9 +14,10 @@ def update_progress(
     current_step: int, 
     total_steps: int, 
     stage: str = "generating", 
-    eta_seconds: Optional[int] = None
+    eta_seconds: Optional[int] = None,
+    intermediate_image: Optional[Image.Image] = None
 ):
-    """Update progress for a generation"""
+    """Update progress for a generation with optional intermediate image"""
     with _lock:
         progress_data = {
             "current_step": current_step,
@@ -22,6 +27,18 @@ def update_progress(
             "eta_seconds": eta_seconds,
             "timestamp": time.time()
         }
+        
+        # Add intermediate image if provided
+        if intermediate_image is not None:
+            try:
+                # Convert PIL Image to base64
+                buffer = io.BytesIO()
+                intermediate_image.save(buffer, format='PNG')
+                img_str = base64.b64encode(buffer.getvalue()).decode()
+                progress_data["intermediate_image"] = f"data:image/png;base64,{img_str}"
+            except Exception as e:
+                print(f"Error encoding intermediate image: {e}")
+        
         _progress_store[generation_id] = progress_data
         print(f"Progress update: {generation_id} - {stage} - Step {current_step}/{total_steps} ({progress_data['percentage']}%)")
 

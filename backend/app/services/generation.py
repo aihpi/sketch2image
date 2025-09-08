@@ -59,6 +59,35 @@ def simple_sketch_inverter(image, target_resolution=768):
             return Image.open(image).convert("RGB")
         return image.convert("RGB")
 
+def decode_latents_to_image(pipe, latents):
+    """Decode latents to PIL Image for intermediate visualization"""
+    try:
+        # Check if we have a VAE to decode with
+        if hasattr(pipe, 'vae') and pipe.vae is not None:
+            # Make sure latents are in the right format
+            if len(latents.shape) == 4:
+                # Take first image if batch
+                latent = latents[0:1] if latents.shape[0] > 1 else latents
+            else:
+                latent = latents.unsqueeze(0)
+            
+            # Decode latents
+            with torch.no_grad():
+                if hasattr(pipe.vae, 'decode'):
+                    image = pipe.vae.decode(latent / pipe.vae.config.scaling_factor, return_dict=False)[0]
+                else:
+                    # Fallback for different VAE types
+                    image = pipe.vae.decode(latent).sample
+                
+                # Convert to PIL Image
+                image = (image / 2 + 0.5).clamp(0, 1)
+                image = image.cpu().permute(0, 2, 3, 1).float().numpy()
+                image = (image * 255).round().astype("uint8")[0]
+                return Image.fromarray(image)
+    except Exception as e:
+        print(f"Error decoding latents: {e}")
+        return None
+
 def get_pipeline_callback_params(pipe, generation_id: str, total_steps: int, image_index: int = 0, total_images: int = 1):
     """
     Get the appropriate callback parameters for different pipeline types
@@ -77,9 +106,14 @@ def get_pipeline_callback_params(pipe, generation_id: str, total_steps: int, ima
             overall_total = total_steps
             stage = "generating"
         
-        update_progress(generation_id, overall_step, overall_total, stage)
+        # Decode intermediate image every few steps
+        intermediate_image = None
+        if step > 0:  # Show ~10 intermediate images
+            intermediate_image = decode_latents_to_image(pipe, latents)
+        
+        update_progress(generation_id, overall_step, overall_total, stage, intermediate_image=intermediate_image)
     
-    def modern_callback_on_step_end(pipe, step: int, timestep: int, callback_kwargs):
+    def modern_callback_on_step_end(pipe_obj, step: int, timestep: int, callback_kwargs):
         """Modern callback function for newer pipelines"""
         if total_images > 1:
             overall_step = (image_index * total_steps) + step + 1
@@ -90,7 +124,13 @@ def get_pipeline_callback_params(pipe, generation_id: str, total_steps: int, ima
             overall_total = total_steps
             stage = "generating"
         
-        update_progress(generation_id, overall_step, overall_total, stage)
+        # Decode intermediate image every few steps
+        intermediate_image = None
+        if step > 0:  # Show ~10 intermediate images
+            if 'latents' in callback_kwargs:
+                intermediate_image = decode_latents_to_image(pipe_obj, callback_kwargs['latents'])
+        
+        update_progress(generation_id, overall_step, overall_total, stage, intermediate_image=intermediate_image)
         return callback_kwargs
     
     # Pipeline-specific callback handling

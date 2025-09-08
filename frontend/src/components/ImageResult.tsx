@@ -3,7 +3,15 @@ import { GenerationResult } from '../types';
 import { checkGenerationStatus } from '../services/api';
 import { useReset } from '../ResetContext';
 import Icon from './Icon';
-import ProgressOverlay from './ProgressOverlay';
+
+interface ProgressData {
+  current_step: number;
+  total_steps: number;
+  percentage: number;
+  stage: string;
+  eta_seconds?: number;
+  intermediate_image?: string;
+}
 
 interface ImageResultProps {
   generationResult: GenerationResult | null;
@@ -22,7 +30,8 @@ const ImageResult: React.FC<ImageResultProps> = ({
   const [isMaximized, setIsMaximized] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [showProgress, setShowProgress] = useState(false);
+  const [progress, setProgress] = useState<ProgressData | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const { resetTrigger } = useReset();
 
   useEffect(() => {
@@ -31,7 +40,8 @@ const ImageResult: React.FC<ImageResultProps> = ({
       setGenerationResult(null);
       setSelectedImageIndex(0);
       setImageUrls([]);
-      setShowProgress(false);
+      setProgress(null);
+      setIsConnected(false);
     }
   }, [resetTrigger, setGenerationResult]);
 
@@ -40,16 +50,86 @@ const ImageResult: React.FC<ImageResultProps> = ({
       setResult(generationResult);
       setSelectedImageIndex(0);
       setImageUrls([]);
+      setProgress(null);
       
       if (generationResult.status === 'processing') {
-        setShowProgress(true);
-        setIsLoading(false); // Turn off the old loading overlay
+        setIsLoading(false); // Turn off any old loading overlay
+        startProgressStream(generationResult.generation_id);
       } else if (generationResult.status === 'completed' && generationResult.image_url) {
-        setShowProgress(false);
         generateImageUrls(generationResult.generation_id, generationResult.image_url);
       }
     }
   }, [generationResult, setIsLoading]);
+
+  const startProgressStream = (generationId: string) => {
+    const apiUrl = process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:8000';
+    const eventSource = new EventSource(`${apiUrl}/api/progress/${generationId}`);
+
+    eventSource.onopen = () => {
+      setIsConnected(true);
+      console.log('Progress stream connected');
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        switch (data.type) {
+          case 'connected':
+            console.log('Connected to progress stream');
+            break;
+            
+          case 'progress':
+            setProgress({
+              current_step: data.current_step,
+              total_steps: data.total_steps,
+              percentage: data.percentage,
+              stage: data.stage,
+              eta_seconds: data.eta_seconds,
+              intermediate_image: data.intermediate_image
+            });
+            break;
+            
+          case 'completed':
+            console.log('Generation completed');
+            eventSource.close();
+            setProgress(null);
+            handleProgressComplete(generationId);
+            break;
+            
+          case 'timeout':
+            console.log('Progress stream timed out');
+            eventSource.close();
+            setProgress(null);
+            break;
+            
+          default:
+            console.log('Unknown message type:', data.type);
+        }
+      } catch (error) {
+        console.error('Error parsing progress data:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('EventSource error:', error);
+      setIsConnected(false);
+      eventSource.close();
+    };
+  };
+
+  const handleProgressComplete = async (generationId: string) => {
+    try {
+      const updatedResult = await checkGenerationStatus(generationId);
+      setResult(updatedResult);
+      
+      if (updatedResult.status === 'completed' && updatedResult.image_url) {
+        generateImageUrls(updatedResult.generation_id, updatedResult.image_url);
+      }
+    } catch (error) {
+      console.error('Error checking final status:', error);
+    }
+  };
 
   const generateImageUrls = (generationId: string, firstImageUrl: string) => {
     // Check if this is a multi-image result (ends with _1)
@@ -64,30 +144,6 @@ const ImageResult: React.FC<ImageResultProps> = ({
       // Single image result
       setImageUrls([firstImageUrl]);
     }
-  };
-
-  const handleProgressComplete = async () => {
-    setShowProgress(false);
-    
-    if (result?.generation_id) {
-      try {
-        const updatedResult = await checkGenerationStatus(result.generation_id);
-        setResult(updatedResult);
-        
-        if (updatedResult.status === 'completed' && updatedResult.image_url) {
-          generateImageUrls(updatedResult.generation_id, updatedResult.image_url);
-        }
-      } catch (error) {
-        console.error('Error checking final status:', error);
-      }
-    }
-  };
-
-  const handleProgressError = (error: string) => {
-    setShowProgress(false);
-    setIsLoading(false);
-    console.error('Progress error:', error);
-    // You might want to show this error to the user via notification
   };
 
   const handleDownload = () => {
@@ -126,6 +182,30 @@ const ImageResult: React.FC<ImageResultProps> = ({
     setSelectedImageIndex(index);
   };
 
+  const getStageDisplay = (stage: string) => {
+    switch (stage) {
+      case 'initializing':
+        return 'Initializing...';
+      case 'loading model':
+        return 'Loading AI model...';
+      case 'preprocessing sketch':
+        return 'Processing your sketch...';
+      case 'starting generation':
+        return 'Starting generation...';
+      case 'generating':
+        return 'Generating image...';
+      case 'saving results':
+        return 'Saving results...';
+      case 'error':
+        return 'Error occurred';
+      default:
+        if (stage.includes('generating image')) {
+          return stage.charAt(0).toUpperCase() + stage.slice(1) + '...';
+        }
+        return stage.charAt(0).toUpperCase() + stage.slice(1) + '...';
+    }
+  };
+
   // Handle escape key to close maximized view
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -145,123 +225,159 @@ const ImageResult: React.FC<ImageResultProps> = ({
     };
   }, [isMaximized]);
 
-  // Show progress overlay during generation
-  if (showProgress && result?.generation_id) {
+  // Show progress within placeholder during generation
+  if (progress && result?.generation_id) {
     return (
-      <>
-        <div className="image-result empty">
-          <div className="placeholder">
-            <p>generating your image...</p>
-          </div>
-        </div>
-        <ProgressOverlay 
-          generationId={result.generation_id}
-          onComplete={handleProgressComplete}
-          onError={handleProgressError}
-        />
-      </>
-    );
-  }
-  
-  if (!result || (!showProgress && result.status === 'processing')) {
-    return (
-      <>
-        <div className="image-result empty">
-          <div className="placeholder">
-            <p>your generated image will appear here</p>
-          </div>
-        </div>
-      </>
-    );
-  }
-  
-  return (
-  <>
-    <div className="image-result completed">
-      {imageUrls.length > 0 && (
-        <div className="image-gallery">
-          {/* Main Image Display */}
-          <div className="main-image-container">
-            <div className="main-image-wrapper">
+      <div className="image-result progress">
+        <div className="progress-container">
+          {/* Always try to show intermediate image if available, even for early steps */}
+          {progress.intermediate_image ? (
+            <div className="intermediate-image-container">
               <img 
-                src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrls[selectedImageIndex]}`} 
-                alt="Generated from sketch" 
-                className="main-image"
+                src={progress.intermediate_image}
+                alt="Generation in progress"
+                className="intermediate-image"
               />
-              
-              {/* Result Controls - now inside main image wrapper */}
-              <div className="result-controls">
-                <button 
-                  className="control-button"
-                  onClick={handleDownload}
-                  title="Download Image"
-                  aria-label="Download Image"
-                >
-                  <Icon name="download" size={16} />
-                  download
-                </button>
-                
-                <button 
-                  className="control-button"
-                  onClick={handleMaximize}
-                  title="View Full Size"
-                  aria-label="View Full Size"
-                >
-                  <Icon name="expand" size={16} />
-                  view full size
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Thumbnail Gallery - only show if multiple images */}
-          {imageUrls.length > 1 && (
-            <div className="thumbnail-gallery">
-              {imageUrls.map((imageUrl, index) => (
-                <div 
-                  key={index}
-                  className={`thumbnail-container ${selectedImageIndex === index ? 'selected' : ''}`}
-                  onClick={() => handleThumbnailClick(index)}
-                >
-                  <img 
-                    src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrl}`} 
-                    alt={`Generated variation ${index + 1}`}
-                    className="thumbnail-image"
-                  />
-                  <div className="thumbnail-overlay">
-                    <span className="thumbnail-number">{index + 1}</span>
+              <div className="progress-overlay">
+                <div className="progress-info">
+                  <div className="progress-text">{getStageDisplay(progress.stage)}</div>
+                  <div className="progress-details">
+                    Step {progress.current_step} of {progress.total_steps} ({progress.percentage}%)
                   </div>
                 </div>
-              ))}
+                <div className="progress-bar">
+                  <div 
+                    className="progress-bar-fill"
+                    style={{ width: `${progress.percentage}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="progress-placeholder">
+              <div className="progress-spinner"></div>
+              <div className="progress-info">
+                <div className="progress-text">{getStageDisplay(progress.stage)}</div>
+                <div className="progress-details">
+                  {progress.current_step > 0 ? (
+                    `Step ${progress.current_step} of ${progress.total_steps} (${progress.percentage}%)`
+                  ) : (
+                    'Preparing...'
+                  )}
+                </div>
+              </div>
+              <div className="progress-bar">
+                <div 
+                  className="progress-bar-fill"
+                  style={{ width: `${progress.percentage}%` }}
+                />
+              </div>
             </div>
           )}
         </div>
-      )}
-    </div>
-
-    {isMaximized && imageUrls.length > 0 && (
-      <div className="image-modal-overlay" onClick={handleCloseMaximized}>
-        <div className="image-modal-container">
-          <button 
-            className="image-modal-close"
-            onClick={handleCloseMaximized}
-            title="Close"
-            aria-label="Close maximized view"
-          >
-            <Icon name="close" size={20} />
-          </button>
-          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
-            <img 
-              src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrls[selectedImageIndex]}`} 
-              alt="Generated from sketch - Maximized view" 
-              className="maximized-image"
-            />
-          </div>
+      </div>
+    );
+  }
+  
+  // Empty state
+  if (!result || (!progress && result.status === 'processing')) {
+    return (
+      <div className="image-result empty">
+        <div className="placeholder">
+          <p>your generated image will appear here</p>
         </div>
       </div>
-    )}
-  </>
-);
+    );
+  }
+  
+  // Completed state with generated images
+  return (
+    <>
+      <div className="image-result completed">
+        {imageUrls.length > 0 && (
+          <div className="image-gallery">
+            {/* Main Image Display */}
+            <div className="main-image-container">
+              <div className="main-image-wrapper">
+                <img 
+                  src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrls[selectedImageIndex]}`} 
+                  alt="Generated from sketch" 
+                  className="main-image"
+                />
+                
+                {/* Result Controls - now inside main image wrapper */}
+                <div className="result-controls">
+                  <button 
+                    className="control-button"
+                    onClick={handleDownload}
+                    title="Download Image"
+                    aria-label="Download Image"
+                  >
+                    <Icon name="download" size={16} />
+                    download
+                  </button>
+                  
+                  <button 
+                    className="control-button"
+                    onClick={handleMaximize}
+                    title="View Full Size"
+                    aria-label="View Full Size"
+                  >
+                    <Icon name="expand" size={16} />
+                    view full size
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Thumbnail Gallery - only show if multiple images */}
+            {imageUrls.length > 1 && (
+              <div className="thumbnail-gallery">
+                {imageUrls.map((imageUrl, index) => (
+                  <div 
+                    key={index}
+                    className={`thumbnail-container ${selectedImageIndex === index ? 'selected' : ''}`}
+                    onClick={() => handleThumbnailClick(index)}
+                  >
+                    <img 
+                      src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrl}`} 
+                      alt={`Generated variation ${index + 1}`}
+                      className="thumbnail-image"
+                    />
+                    <div className="thumbnail-overlay">
+                      <span className="thumbnail-number">{index + 1}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {isMaximized && imageUrls.length > 0 && (
+        <div className="image-modal-overlay" onClick={handleCloseMaximized}>
+          <div className="image-modal-container">
+            <button 
+              className="image-modal-close"
+              onClick={handleCloseMaximized}
+              title="Close"
+              aria-label="Close maximized view"
+            >
+              <Icon name="close" size={20} />
+            </button>
+            <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+              <img 
+                src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrls[selectedImageIndex]}`} 
+                alt="Generated from sketch - Maximized view" 
+                className="maximized-image"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 };
 
 export default ImageResult;

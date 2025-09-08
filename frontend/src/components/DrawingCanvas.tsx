@@ -94,7 +94,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     }
 
     try {
-      setIsLoading(true);
+      setIsLoading(false); // Remove old loading overlay
 
       const appState = excalidrawInstance.getAppState();
 

@@ -279,7 +279,7 @@ const App: React.FC = () => {
           </div>
         </footer>
 
-        {/* Only show old loading overlay if isLoading is true (for backward compatibility/fallback) */}
+        {/* Legacy loading overlay - only for backward compatibility if needed */}
         {isLoading && (
           <div className="loading-overlay">
             <div className="spinner"></div>
