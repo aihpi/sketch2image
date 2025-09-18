@@ -187,17 +187,17 @@ const ImageResult: React.FC<ImageResultProps> = ({
       case 'initializing':
         return 'Initializing...';
       case 'loading model':
-        return 'Loading AI model...';
+        return 'loading AI model...';
       case 'preprocessing sketch':
-        return 'Processing your sketch...';
+        return 'processing sketch...';
       case 'starting generation':
-        return 'Starting generation...';
+        return 'starting generation...';
       case 'generating':
-        return 'Generating image...';
+        return 'generating image...';
       case 'saving results':
-        return 'Saving results...';
+        return 'saving results...';
       case 'error':
-        return 'Error occurred';
+        return 'error occurred';
       default:
         if (stage.includes('generating image')) {
           return stage.charAt(0).toUpperCase() + stage.slice(1) + '...';
@@ -229,46 +229,45 @@ const ImageResult: React.FC<ImageResultProps> = ({
   if (progress && result?.generation_id) {
     return (
       <div className="image-result progress">
-        <div className="progress-container">
-          {/* Always try to show intermediate image if available, even for early steps */}
+        <div className="progress-preview-container">
           {progress.intermediate_image ? (
-            <div className="intermediate-image-container">
+            <div className="progress-preview-with-image">
               <img 
                 src={progress.intermediate_image}
                 alt="Generation in progress"
-                className="intermediate-image"
+                className="progress-preview-image"
               />
-              <div className="progress-overlay">
-                <div className="progress-info">
-                  <div className="progress-text">{getStageDisplay(progress.stage)}</div>
-                  <div className="progress-details">
-                    Step {progress.current_step} of {progress.total_steps} ({progress.percentage}%)
+              <div className="progress-overlay-modern">
+                <div className="progress-info-modern">
+                  <div className="progress-stage-text">{getStageDisplay(progress.stage)}</div>
+                  <div className="progress-step-text">
+                    step {progress.current_step} of {progress.total_steps}
                   </div>
                 </div>
-                <div className="progress-bar">
+                <div className="progress-bar-modern">
                   <div 
-                    className="progress-bar-fill"
+                    className="progress-bar-fill-modern"
                     style={{ width: `${progress.percentage}%` }}
                   />
                 </div>
               </div>
             </div>
           ) : (
-            <div className="progress-placeholder">
-              <div className="progress-spinner"></div>
-              <div className="progress-info">
-                <div className="progress-text">{getStageDisplay(progress.stage)}</div>
-                <div className="progress-details">
+            <div className="progress-preview-placeholder">
+              <div className="progress-spinner-modern"></div>
+              <div className="progress-info-centered">
+                <div className="progress-stage-text">{getStageDisplay(progress.stage)}</div>
+                <div className="progress-step-text">
                   {progress.current_step > 0 ? (
-                    `Step ${progress.current_step} of ${progress.total_steps} (${progress.percentage}%)`
+                    `step ${progress.current_step} of ${progress.total_steps}`
                   ) : (
                     'Preparing...'
                   )}
                 </div>
               </div>
-              <div className="progress-bar">
+              <div className="progress-bar-modern">
                 <div 
-                  className="progress-bar-fill"
+                  className="progress-bar-fill-modern"
                   style={{ width: `${progress.percentage}%` }}
                 />
               </div>
