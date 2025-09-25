@@ -30,8 +30,7 @@ const ProgressOverlay: React.FC<ProgressOverlayProps> = ({
   useEffect(() => {
     if (!generationId) return;
 
-    const apiUrl = process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:8000';
-    const eventSource = new EventSource(`${apiUrl}/api/progress/${generationId}`);
+    const eventSource = new EventSource(`/api/progress/${generationId}`);
 
     eventSource.onopen = () => {
       setIsConnected(true);

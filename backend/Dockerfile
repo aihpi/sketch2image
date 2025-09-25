@@ -1,6 +1,3 @@
-# backend/Dockerfile
-# This version is optimized for building and running on a GPU machine (like your laptop).
-
 # Use the official CUDA 11.8 image.
 FROM nvidia/cuda:11.8.0-base-ubuntu20.04
 

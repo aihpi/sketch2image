@@ -1,31 +1,10 @@
-# docker-compose.yml
-# A simple, single configuration for running on a GPU-enabled machine.
-
 services:
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules # Prevents host node_modules from overwriting the container's
-    environment:
-      # This helps hot-reloading work reliably on Windows
-      - CHOKIDAR_USEPOLLING=true
-      # This value will be pulled from the .env file
-      - REACT_APP_API_URL=${REACT_APP_API_URL}
-    depends_on:
-      - backend
-
+  # Backend - NOT exposed to internet
   backend:
     build: ./backend
-    ports:
-      - "8000:8000"
     volumes:
-      - ./backend:/app
       - ./backend/dataset:/app/dataset
       - huggingface_cache:/root/.cache/huggingface
-    # This section tells Docker to use your NVIDIA GPU
     deploy:
       resources:
         reservations:
@@ -33,9 +12,36 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    # Loads all variables from the .env file
-    env_file:
-      - .env
+    environment:
+      - DEVICE=cuda
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG_MODE=true
+      - DEFAULT_MODEL_ID=controlnet_scribble
+      - NUM_INFERENCE_STEPS=20
+      - GUIDANCE_SCALE=7.5
+      - OUTPUT_IMAGE_SIZE=512
+    networks:
+      - sketch2image
+
+  # Express proxy server - ONLY this is exposed
+  app:
+    build: 
+      context: .
+      dockerfile: proxy-server/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - NODE_ENV=production
+    networks:
+      - sketch2image
 
 volumes:
   huggingface_cache: {}
+
+networks:
+  sketch2image:
+    driver: bridge

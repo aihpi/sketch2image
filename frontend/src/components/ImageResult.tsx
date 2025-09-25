@@ -62,8 +62,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
   }, [generationResult, setIsLoading]);
 
   const startProgressStream = (generationId: string) => {
-    const apiUrl = process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:8000';
-    const eventSource = new EventSource(`${apiUrl}/api/progress/${generationId}`);
+    const eventSource = new EventSource(`/api/progress/${generationId}`);
 
     eventSource.onopen = () => {
       setIsConnected(true);
@@ -148,7 +147,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
 
   const handleDownload = () => {
     if (imageUrls[selectedImageIndex]) {
-      const imageUrl = `${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrls[selectedImageIndex]}`;
+      const imageUrl = imageUrls[selectedImageIndex];
       
       const link = document.createElement('a');
       link.href = imageUrl;
@@ -299,7 +298,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
             <div className="main-image-container">
               <div className="main-image-wrapper">
                 <img 
-                  src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrls[selectedImageIndex]}`} 
+                  src={imageUrls[selectedImageIndex]}
                   alt="Generated from sketch" 
                   className="main-image"
                 />
@@ -367,7 +366,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
             </button>
             <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
               <img 
-                src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '')}${imageUrls[selectedImageIndex]}`} 
+                src={imageUrls[selectedImageIndex]}
                 alt="Generated from sketch - Maximized view" 
                 className="maximized-image"
               />

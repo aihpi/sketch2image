@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { Style, Model, GenerationResult } from '../types';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+// Use relative path - proxy will handle routing
+const API_URL = '/api';
 
 const api = axios.create({
   baseURL: API_URL,
