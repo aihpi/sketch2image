@@ -1,5 +1,5 @@
 services:
-  # Backend - NOT exposed to internet
+  # Backend
   backend:
     build: ./backend
     volumes:
@@ -24,7 +24,7 @@ services:
     networks:
       - sketch2image
 
-  # Express proxy server - ONLY this is exposed
+  # Express proxy + React frontend
   app:
     build: 
       context: .

@@ -1,0 +1,57 @@
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environments
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Datasets and outputs (will be mounted as volumes)
+backend/dataset/sketch/*
+backend/dataset/result/*
+backend/dataset/metadata/*
+!backend/dataset/sketch/.gitkeep
+!backend/dataset/result/.gitkeep
+!backend/dataset/metadata/.gitkeep
+
+# Build outputs
+frontend/build/
+dist/
+
+# Cache
+.cache/
+huggingface/
+*.log
+
+# Kubernetes
+kubernetes/
+
+# Scripts (not needed in container)
+scripts/

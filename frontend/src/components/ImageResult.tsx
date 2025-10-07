@@ -260,7 +260,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
                   {progress.current_step > 0 ? (
                     `step ${progress.current_step} of ${progress.total_steps}`
                   ) : (
-                    'Preparing...'
+                    'preparing...'
                   )}
                 </div>
               </div>

@@ -19,7 +19,13 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
+# Check for docker-compose or docker compose
+COMPOSE_CMD=""
+if command -v docker-compose &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+elif docker compose version &> /dev/null 2>&1; then
+    COMPOSE_CMD="docker compose"
+else
     echo "Error: Docker Compose is not installed. Please install Docker Compose first."
     exit 1
 fi
@@ -28,23 +34,28 @@ echo "Building and starting containers..."
 echo "This may take several minutes on the first run as models are downloaded..."
 
 # Build and start containers
-docker-compose up --build -d
+$COMPOSE_CMD up --build -d
 
 if [ $? -eq 0 ]; then
     echo ""
     echo "✅ Application Started Successfully!"
     echo ""
-    echo "Services:"
-    echo "  - Frontend: http://localhost:3000"
-    echo "  - Backend API: http://localhost:8000/api"
-    echo "  - API Documentation: http://localhost:8000/docs"
+    echo "Access the application:"
+    echo "  - Main App: http://localhost:3000"
+    echo ""
+    echo "Architecture:"
+    echo "  - Express proxy (port 3000): Serves React + proxies API"
+    echo "  - Backend (internal): Not exposed, accessible via proxy"
     echo ""
     echo "Useful commands:"
-    echo "  - View logs: docker-compose logs -f"
+    echo "  - View all logs:     $COMPOSE_CMD logs -f"
+    echo "  - View backend logs: $COMPOSE_CMD logs -f backend"
+    echo "  - View proxy logs:   $COMPOSE_CMD logs -f app"
+    echo "  - Stop services:     $COMPOSE_CMD down"
     echo ""
     echo "Note: The first generation may take longer as models are downloaded."
 else
     echo "❌ Error: Failed to start services."
-    echo "Check logs with: docker-compose logs"
+    echo "Check logs with: $COMPOSE_CMD logs"
     exit 1
 fi
