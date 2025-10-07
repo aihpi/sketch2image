@@ -48,25 +48,42 @@ BACKEND_IMAGE_TAG="ghcr.io/$GITHUB_ORG/$BACKEND_IMAGE_NAME:latest"
 
 echo "▶ (3/4) Building and pushing Backend image for $PLATFORM..."
 echo "    Target: $BACKEND_IMAGE_TAG"
+echo "    Building from: ./backend"
 docker buildx build \
     --platform $PLATFORM \
     -t $BACKEND_IMAGE_TAG \
     --push \
     ./backend
 
+if [ $? -ne 0 ]; then
+    echo "❌ Backend build/push failed!"
+    exit 1
+fi
 echo "✔ Backend image pushed successfully."
 
 echo "▶ (4/4) Building and pushing Frontend image for $PLATFORM..."
+echo "    NOTE: This image contains Express proxy + React build"
 echo "    Target: $FRONTEND_IMAGE_TAG"
+echo "    Building from: . (root) with proxy-server/Dockerfile"
 docker buildx build \
     --platform $PLATFORM \
     -t $FRONTEND_IMAGE_TAG \
     --push \
-    ./frontend
+    -f proxy-server/Dockerfile \
+    .
 
+if [ $? -ne 0 ]; then
+    echo "❌ Frontend build/push failed!"
+    exit 1
+fi
 echo "✔ Frontend image pushed successfully."
 
 echo ""
 echo "✅===== Success! =====✅"
 echo "Both images have been built for $PLATFORM and pushed to the '$GITHUB_ORG' organization packages."
-echo "You can view them at: https://github.com/orgs/$GITHUB_ORG/packages"
+echo ""
+echo "Images pushed:"
+echo "  - Backend:  $BACKEND_IMAGE_TAG"
+echo "  - Frontend: $FRONTEND_IMAGE_TAG"
+echo ""
+echo "View packages at: https://github.com/orgs/$GITHUB_ORG/packages"
