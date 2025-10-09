@@ -22,8 +22,10 @@ spec:
         ports:
         - containerPort: 3000
         env:
-        - name: REACT_APP_API_URL
+        - name: BACKEND_URL
           value: "http://backend-service:8000"
+        - name: NODE_ENV
+          value: "production"
     
 ---
 apiVersion: v1

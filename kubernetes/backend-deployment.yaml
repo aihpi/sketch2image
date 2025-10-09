@@ -29,7 +29,7 @@ spec:
         - name: PORT
           value: "8000"
         - name: DEBUG_MODE
-          value: "true"
+          value: "false"
         - name: DEFAULT_MODEL_ID
           value: "t2i_adapter_sdxl"
         - name: NUM_INFERENCE_STEPS
@@ -38,29 +38,21 @@ spec:
           value: "7.5"
         - name: OUTPUT_IMAGE_SIZE
           value: "512"
-        - name: FRONTEND_URL
-          value: "http://frontend-service:3000"
-        - name: USE_PIDINET_PREPROCESSING
-          value: "true"
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: huggingface-token
+              key: token
+        
         volumeMounts:
-        - name: uploads-storage
-          mountPath: /app/uploads
-        - name: outputs-storage
-          mountPath: /app/outputs
-        - name: preprocessed-storage
-          mountPath: /app/preprocessed
+        - name: dataset-storage
+          mountPath: /app/dataset
         - name: huggingface-cache
           mountPath: /root/.cache/huggingface
       volumes:
-      - name: uploads-storage
+      - name: dataset-storage
         persistentVolumeClaim:
-          claimName: backend-uploads-pvc
-      - name: outputs-storage
-        persistentVolumeClaim:
-          claimName: backend-outputs-pvc
-      - name: preprocessed-storage
-        persistentVolumeClaim:
-          claimName: backend-preprocessed-pvc
+          claimName: backend-dataset-pvc
       - name: huggingface-cache
         persistentVolumeClaim:
           claimName: huggingface-cache-pvc
