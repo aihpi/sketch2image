@@ -2,10 +2,12 @@ import os
 import hashlib
 import json
 import time
+import qrcode
+import io
 from datetime import datetime
 from typing import List
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, Response
 from app.core.config import settings
 from app.services.generation import generate_image_from_sketch, load_model_pipeline
 from app.services.progress_tracker import update_progress, get_progress, remove_progress
@@ -38,6 +40,25 @@ def save_generation_metadata(sketch_hash: str, metadata: dict):
     metadata_path = os.path.join(settings.DATASET_METADATA_DIR, f"{sketch_hash}.json")
     with open(metadata_path, 'w') as f:
         json.dump(metadata, f, indent=2)
+
+def generate_qr_code(url: str) -> bytes:
+    """Generate QR code image as bytes"""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to bytes
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='PNG')
+    img_byte_arr.seek(0)
+    return img_byte_arr.getvalue()
 
 @router.get("/styles", response_model=List[StyleOption])
 async def get_styles():
@@ -255,3 +276,77 @@ async def get_generated_image(image_id: str):
     }
     
     return FileResponse(result_path, headers=headers)
+
+@router.get("/share/{generation_id}")
+async def get_share_qr_code(generation_id: str, image_index: int = 1):
+    """Generate QR code for sharing the generated image"""
+    # Check if generation exists
+    metadata_path = os.path.join(settings.DATASET_METADATA_DIR, f"{generation_id}.json")
+    
+    if not os.path.exists(metadata_path):
+        raise HTTPException(status_code=404, detail="Generation not found")
+    
+    with open(metadata_path, 'r') as f:
+        metadata = json.load(f)
+    
+    if "file_info" not in metadata:
+        raise HTTPException(status_code=400, detail="Generation not completed yet")
+    
+    result_count = metadata["file_info"]["result_count"]
+    
+    # Validate image index
+    if image_index < 1 or image_index > result_count:
+        raise HTTPException(status_code=400, detail=f"Invalid image index. Valid range: 1-{result_count}")
+    
+    # Generate shareable URL
+    # In production, this should be your actual domain
+    base_url = settings.PUBLIC_URL or "http://localhost:3000"
+    
+    if result_count == 1:
+        share_url = f"{base_url}/shared/{generation_id}"
+    else:
+        share_url = f"{base_url}/shared/{generation_id}/{image_index}"
+    
+    # Generate QR code
+    qr_bytes = generate_qr_code(share_url)
+    
+    return Response(content=qr_bytes, media_type="image/png")
+
+@router.get("/shared/{generation_id}")
+@router.get("/shared/{generation_id}/{image_index}")
+async def get_shared_image(generation_id: str, image_index: int = 1):
+    """Public endpoint to view and download shared images"""
+    # Check if generation exists
+    metadata_path = os.path.join(settings.DATASET_METADATA_DIR, f"{generation_id}.json")
+    
+    if not os.path.exists(metadata_path):
+        raise HTTPException(status_code=404, detail="Generation not found")
+    
+    with open(metadata_path, 'r') as f:
+        metadata = json.load(f)
+    
+    if "file_info" not in metadata:
+        raise HTTPException(status_code=400, detail="Generation not completed yet")
+    
+    result_count = metadata["file_info"]["result_count"]
+    
+    # Validate image index
+    if image_index < 1 or image_index > result_count:
+        raise HTTPException(status_code=400, detail=f"Invalid image index. Valid range: 1-{result_count}")
+    
+    # Get image path
+    if result_count == 1:
+        result_path = os.path.join(settings.DATASET_RESULT_DIR, f"{generation_id}.png")
+    else:
+        result_path = os.path.join(settings.DATASET_RESULT_DIR, f"{generation_id}_{image_index}.png")
+    
+    if not os.path.exists(result_path):
+        raise HTTPException(status_code=404, detail="Image file not found")
+    
+    # Serve image with appropriate headers for download
+    headers = {
+        "Content-Disposition": f'inline; filename="generated-image-{generation_id}_{image_index}.png"',
+        "Cache-Control": "public, max-age=31536000"  # Cache for 1 year since content is immutable
+    }
+    
+    return FileResponse(result_path, headers=headers, media_type="image/png")
