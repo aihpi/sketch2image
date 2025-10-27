@@ -134,13 +134,26 @@ fi
 
 echo "✓ Frontend dependencies installed"
 
-# Create frontend .env file
-echo "Creating frontend configuration..."
-cat > .env << EOF
-REACT_APP_API_URL=http://localhost:8000/api
-EOF
+# Build frontend
+echo "Building frontend for production..."
+npm run build
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to build frontend"
+    exit 1
+fi
 
-echo "✓ Frontend configuration created"
+echo "✓ Frontend built successfully"
+
+# Install proxy server dependencies
+echo "Installing proxy server dependencies..."
+cd "$PROJECT_DIR/proxy-server"
+npm install
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to install proxy server dependencies"
+    exit 1
+fi
+
+echo "✓ Proxy server dependencies installed"
 
 conda deactivate
 
@@ -156,12 +169,15 @@ echo "  backend/dataset/sketch/    - Sketch dataset"
 echo "  backend/dataset/result/    - Result dataset"
 echo "  backend/dataset/metadata/  - Generation metadata"
 echo ""
+echo "Architecture:"
+echo "  - Backend (FastAPI): Runs on http://localhost:8000 (internal)"
+echo "  - Proxy (Express): Serves React app + proxies API calls on http://localhost:3000"
+echo ""
 echo "To start the application:"
 echo "  ./scripts/run/start_conda.sh"
 echo ""
 echo "Configuration:"
 echo "  - Device: $DEVICE_SETTING"
-echo "  - Backend will run on: http://localhost:8000"  
-echo "  - Frontend will run on: http://localhost:3000"
+echo "  - Main access: http://localhost:3000"
 echo ""
 echo "Note: The first image generation will take longer as models are downloaded."
