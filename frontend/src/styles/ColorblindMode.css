@@ -1,0 +1,393 @@
+/* Colorblind Mode Styles - High contrast, accessible color scheme */
+
+/* 
+  Color scheme designed for users with color vision deficiencies:
+  - High contrast black and white base
+  - Different shades of gray for depth
+  - Distinct patterns/textures where needed
+  - Maintains all UI functionality
+*/
+
+.colorblind-mode {
+  /* Base colors - High contrast B&W */
+  --persian-pink: #1A1A1A;
+  --pigment-green: #2A2A2A;
+  --bice-blue: #3A3A3A;
+  --cocoa-brown: #4A4A4A;
+  --amethyst: #5A5A5A;
+  --non-photo-blue: #E5E5E5;
+  --yellow: #FFFFFF;
+  --cream: #F5F5F5;
+  
+  /* Text colors - Maximum contrast */
+  --text-dark: #000000;
+  --text-light: #4A4A4A;
+  --text-on-light: #000000;
+  --text-on-dark: #FFFFFF;
+  --text-on-color: #FFFFFF;
+  
+  /* Background */
+  --bg-primary: #FFFFFF;
+  
+  /* Borders - More pronounced */
+  --border-light: rgba(0, 0, 0, 0.2);
+  --border-dark: rgba(0, 0, 0, 0.4);
+  --shadow-light: rgba(0, 0, 0, 0.15);
+  --shadow-medium: rgba(0, 0, 0, 0.25);
+}
+
+/* Header styles */
+.colorblind-mode .app-header {
+  background: #1A1A1A;
+}
+
+.colorblind-mode .app-header h1 {
+  color: #FFFFFF;
+}
+
+/* Controls column */
+.colorblind-mode .controls-column {
+  background: #2A2A2A;
+}
+
+.colorblind-mode .controls-wrapper {
+  background: #2A2A2A;
+}
+
+/* Canvas section */
+.colorblind-mode .canvas-section {
+  background-color: #3A3A3A;
+}
+
+.colorblind-mode .canvas-section-title {
+  color: #FFFFFF;
+}
+
+.colorblind-mode .canvas-section::after {
+  background-color: #3A3A3A;
+}
+
+/* Result section */
+.colorblind-mode .result-section {
+  background: #4A4A4A;
+}
+
+.colorblind-mode .result-section-title {
+  color: #FFFFFF;
+}
+
+/* Model pills - Distinct borders */
+.colorblind-mode .model-pill {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.colorblind-mode .model-pill:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.colorblind-mode .model-pill.selected {
+  background: #FFFFFF;
+  color: #000000;
+  border-color: #FFFFFF;
+  /* box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3); */
+}
+
+.colorblind-mode .model-tag {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.colorblind-mode .model-pill.selected .model-tag {
+  background: #000000;
+  color: #FFFFFF;
+}
+
+/* Style pills */
+.colorblind-mode .style-pill {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.colorblind-mode .style-pill:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.colorblind-mode .style-pill.selected {
+  background: #FFFFFF;
+  color: #000000;
+  border-color: #FFFFFF;
+  /* box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3); */
+}
+
+/* Textarea */
+.colorblind-mode .modern-textarea {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #FFFFFF;
+}
+
+.colorblind-mode .modern-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.colorblind-mode .modern-textarea:focus {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Buttons */
+.colorblind-mode .generate-button {
+  background: #FFFFFF;
+  color: #000000;
+}
+
+.colorblind-mode .generate-button:hover:not(:disabled) {
+  background: #000000;
+  color: #FFFFFF;
+  border-color: #FFFFFF;
+}
+
+.colorblind-mode .reset-button {
+  background: var(--amethyst);
+  color: #FFFFFF;
+}
+
+.colorblind-mode .reset-button:hover:not(:disabled) {
+  background: #6A6A6A;
+  color: #FFFFFF;
+}
+
+/* Icons - ensure visibility */
+
+.colorblind-mode .model-pill.selected .icon {
+  filter: brightness(0) saturate(100%) invert(0);
+}
+
+.colorblind-mode .style-pill.selected .icon {
+  filter: brightness(0) saturate(100%) invert(0);
+}
+
+.colorblind-mode .generate-button .icon {
+  filter: brightness(0) saturate(100%) invert(0);
+}
+
+.colorblind-mode .generate-button:hover:not(:disabled) .icon {
+  filter: brightness(0) saturate(100%) invert(1);
+}
+
+.colorblind-mode .reset-button .icon {
+  filter: brightness(0) saturate(100%) invert(1);
+}
+
+.colorblind-mode .reset-button:hover:not(:disabled) .icon {
+  filter: brightness(0) saturate(100%) invert(1);
+}
+
+/* Result controls */
+.colorblind-mode .control-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #FFFFFF;
+}
+
+.colorblind-mode .control-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Progress indicators */
+.colorblind-mode .progress-spinner-modern {
+  border: 6px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #FFFFFF;
+  border-right-color: #CCCCCC;
+  border-bottom-color: #999999;
+}
+
+.colorblind-mode .progress-bar-modern {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.colorblind-mode .progress-bar-fill-modern {
+  background: linear-gradient(90deg, #FFFFFF 0%, #CCCCCC 50%, #999999 100%);
+}
+
+/* Footer */
+.colorblind-mode .app-footer {
+  color: var(--pigment-green);
+  background: #CCCCCC;
+}
+
+.colorblind-mode .footer-link {
+  color: var(--cocoa-brown);
+  text-decoration: underline;
+}
+
+.colorblind-mode .footer-link:hover {
+  color: #000000;
+}
+
+/* Excalidraw wrapper */
+.colorblind-mode .excalidraw-wrapper {
+  border: 3px solid #000000;
+}
+
+/* Thumbnail gallery */
+.colorblind-mode .thumbnail-container {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.colorblind-mode .thumbnail-container.selected {
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 4px 16px var(--shadow-medium);
+  transform: translateY(-1px);
+}
+
+.colorblind-mode .thumbnail-overlay {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.colorblind-mode .thumbnail-container.selected .thumbnail-overlay {
+  background: #FFFFFF;
+  color: #000000;
+}
+
+/* Empty state - keep checkered pattern */
+.colorblind-mode .image-result.empty::before {
+  background: rgba(0, 0, 0, 0.03);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background-image: 
+    linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.04) 75%, rgba(255, 255, 255, 0.04)),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.04) 75%, rgba(255, 255, 255, 0.04));
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+/* Loading overlay */
+.colorblind-mode .loading-overlay {
+  background: linear-gradient(135deg, rgba(26, 26, 26, 0.95), rgba(42, 42, 42, 0.95));
+}
+
+.colorblind-mode .spinner {
+  border: 5px solid #666666;
+  border-top-color: #FFFFFF;
+}
+
+/* Notification */
+.colorblind-mode .notification {
+  background-color: #FFFFFF;
+  border-left: 4px solid #000000;
+}
+
+.colorblind-mode .notification-error {
+  border-left-color: #000000;
+}
+
+.colorblind-mode .notification-error .notification-icon {
+  color: #000000;
+}
+
+.colorblind-mode .notification-info {
+  border-left-color: #4A4A4A;
+}
+
+.colorblind-mode .notification-info .notification-icon {
+  color: #4A4A4A;
+}
+
+.colorblind-mode .notification-success {
+  border-left-color: #6A6A6A;
+}
+
+.colorblind-mode .notification-success .notification-icon {
+  color: #6A6A6A;
+}
+
+/* Image modal */
+.colorblind-mode .image-modal-overlay {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(26, 26, 26, 0.9));
+}
+
+.colorblind-mode .maximized-image {
+  border: 1px solid rgb(255, 255, 255, 0.7);
+}
+
+/* Colorblind Toggle Button Styles */
+.colorblind-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  font-weight: 500;
+  color: #2C2C2C;
+}
+
+.colorblind-toggle:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.colorblind-toggle svg {
+  flex-shrink: 0;
+}
+
+.colorblind-toggle .toggle-text {
+  white-space: nowrap;
+}
+
+.colorblind-mode .colorblind-toggle {
+  background: rgba(26, 26, 26, 0.95);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.colorblind-mode .colorblind-toggle:hover {
+  background: rgba(26, 26, 26, 1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .colorblind-toggle {
+    top: 10px;
+    right: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .colorblind-toggle svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .colorblind-toggle .toggle-text {
+    display: none;
+  }
+  
+  .colorblind-toggle {
+    padding: 8px;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+  }
+}

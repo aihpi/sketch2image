@@ -971,6 +971,7 @@ a:hover {
   height: auto;
   align-items: center;
   max-height: var(--result-min-height);
+  padding: 4px;
 }
 
 .thumbnail-container {
