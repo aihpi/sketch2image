@@ -7,7 +7,7 @@ import io
 from datetime import datetime
 from typing import List
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
-from fastapi.responses import FileResponse, StreamingResponse, Response
+from fastapi.responses import FileResponse, StreamingResponse, Response, HTMLResponse
 from app.core.config import settings
 from app.services.generation import generate_image_from_sketch, load_model_pipeline
 from app.services.progress_tracker import update_progress, get_progress, remove_progress
@@ -299,13 +299,12 @@ async def get_share_qr_code(generation_id: str, image_index: int = 1):
         raise HTTPException(status_code=400, detail=f"Invalid image index. Valid range: 1-{result_count}")
     
     # Generate shareable URL
-    # In production, this should be your actual domain
     base_url = settings.PUBLIC_URL or "http://localhost:3000"
     
     if result_count == 1:
-        share_url = f"{base_url}/shared/{generation_id}"
+        share_url = f"{base_url}/api/shared/{generation_id}"
     else:
-        share_url = f"{base_url}/shared/{generation_id}/{image_index}"
+        share_url = f"{base_url}/api/shared/{generation_id}/{image_index}"
     
     # Generate QR code
     qr_bytes = generate_qr_code(share_url)
@@ -334,19 +333,74 @@ async def get_shared_image(generation_id: str, image_index: int = 1):
     if image_index < 1 or image_index > result_count:
         raise HTTPException(status_code=400, detail=f"Invalid image index. Valid range: 1-{result_count}")
     
-    # Get image path
+    # Construct the correct image URL
     if result_count == 1:
-        result_path = os.path.join(settings.DATASET_RESULT_DIR, f"{generation_id}.png")
+        image_url = f"/api/images/{generation_id}"
     else:
-        result_path = os.path.join(settings.DATASET_RESULT_DIR, f"{generation_id}_{image_index}.png")
+        image_url = f"/api/images/{generation_id}_{image_index}"
     
-    if not os.path.exists(result_path):
-        raise HTTPException(status_code=404, detail="Image file not found")
+    # Return simple HTML page that displays the image
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Shared Image - Sketch to Image</title>
+        <style>
+            body {{
+                margin: 0;
+                padding: 20px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+                background: #f5f5f5;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+            }}
+            .container {{
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                max-width: 800px;
+                width: 100%;
+            }}
+            h1 {{
+                margin: 0 0 20px 0;
+                font-size: 24px;
+                color: #333;
+            }}
+            img {{
+                width: 100%;
+                height: auto;
+                border-radius: 4px;
+                display: block;
+            }}
+            .download-btn {{
+                display: inline-block;
+                margin-top: 20px;
+                padding: 12px 24px;
+                background: #0A6A99;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                font-weight: 500;
+            }}
+            .download-btn:hover {{
+                background: #085580;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Generated Image</h1>
+            <img src="{image_url}" alt="Generated image from sketch">
+            <a href="{image_url}" download="generated-image.png" class="download-btn">Download Image</a>
+        </div>
+    </body>
+    </html>
+    """
     
-    # Serve image with appropriate headers for download
-    headers = {
-        "Content-Disposition": f'inline; filename="generated-image-{generation_id}_{image_index}.png"',
-        "Cache-Control": "public, max-age=31536000"  # Cache for 1 year since content is immutable
-    }
-    
-    return FileResponse(result_path, headers=headers, media_type="image/png")
+    return HTMLResponse(content=html_content)
