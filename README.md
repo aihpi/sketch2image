@@ -1,5 +1,5 @@
 <div style="background-color: #ffffff; color: #000000; padding: 10px;">
-<img src="frontend\public\logos.jpg" height="120">
+<img src="frontend\public\logos.png" height="120">
 <h1> Sketch-to-Image Demonstrator
 </div>
 
@@ -127,4 +127,4 @@ You can modify the application settings by editing the `.env` file or the `docke
 - [ControlNet](https://github.com/lllyasviel/ControlNet) & [T2I-Adapter](https://github.com/TencentARC/T2I-Adapter) for the sketch-to-image technology
 
 ---
-[KI-Servicezentrum Berlin-Brandenburg](http://hpi.de/kisz) is funded by the Federal Ministry of Education and Research under the funding code 01IS22092.
+The [KI-Servicezentrum Berlin-Brandenburg](http://hpi.de/kisz), which created this tool, was funded by the Federal Ministry of Research, Technology and Space under the funding code 16IS22092.

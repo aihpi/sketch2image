@@ -156,7 +156,7 @@ const App: React.FC = () => {
                 <div className="footer-content">
                   <div className="footer-logo-container">
                     <img 
-                      src="/logos.jpg" 
+                      src="/logos.png" 
                       alt="HPI AI Service Center Logo" 
                       className="footer-logos"
                     />
@@ -274,7 +274,7 @@ const App: React.FC = () => {
             <div className="footer-content">
               <div className="footer-logo-container">
                 <img 
-                  src="/logos.jpg" 
+                  src="/logos.png" 
                   alt="HPI AI Service Center Logo" 
                   className="footer-logos"
                 />
