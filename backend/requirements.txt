@@ -7,9 +7,9 @@ python-dotenv>=1.0.0
 numpy<2.0
 opencv-python-headless
 safetensors>=0.4.5
-diffusers>=0.31.0
-transformers>=4.46.0
-accelerate>=0.34.0
+diffusers==0.35.2
+transformers==4.57.1
+accelerate==1.11.0
 huggingface_hub>=0.26.0
 protobuf>=3.20.0
 sentencepiece>=0.2.0

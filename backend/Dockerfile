@@ -1,37 +1,48 @@
-# Use the official CUDA 11.8 image.
-FROM nvidia/cuda:11.8.0-base-ubuntu20.04
+# Use CUDA 11.8 with Ubuntu 22.04 for better package support
+FROM nvidia/cuda:11.8.0-base-ubuntu22.04
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Etc/UTC \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies and Python 3.11
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    python3.10 \
+    software-properties-common \
+    wget \
+    curl \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-distutils \
+    python3.11-dev \
     python3-pip \
     libgl1-mesa-glx \
     && rm -rf /var/lib/apt/lists/*
 
-# CORRECTED: Upgrade pip using python3.10 directly, THEN create the symlink.
-# This is the fix for the "/bin/sh: 1: python: not found" error.
-RUN pip install --upgrade pip && \
-    ln -s /usr/bin/python3.10 /usr/bin/python
+# Create symlinks
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python3 && \
+    ln -sf /usr/bin/python3.11 /usr/bin/python
 
-# Copy requirements file
+# Upgrade pip
+RUN python3.11 -m pip install --upgrade pip setuptools wheel
+
+# Copy requirements
 COPY requirements.txt .
 
-# Install the GPU-version of PyTorch.
-RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu118
+# Install PyTorch with CUDA 11.8
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-# Install the rest of the requirements
+# Install other requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
+# Copy application
 COPY . .
 
 EXPOSE 8000

@@ -14,7 +14,6 @@ spec:
       labels:
         app: backend
     spec:
-      nodeName: gx14
       imagePullSecrets:
       - name: ghcr-secret
       containers:
@@ -24,7 +23,7 @@ spec:
         - containerPort: 8000
         env:
         - name: NVIDIA_VISIBLE_DEVICES
-          value: "3"   
+          value: "3"
         - name: DEVICE
           value: "cuda"
         - name: HOST
@@ -60,7 +59,7 @@ spec:
         persistentVolumeClaim:
           claimName: huggingface-cache-pvc
       nodeSelector:
-        nvidia.com/gpu.present: "true"
+        gpu: h100
       tolerations:
       - key: nvidia.com/gpu
         operator: Exists
