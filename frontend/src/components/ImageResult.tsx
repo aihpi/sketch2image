@@ -341,11 +341,11 @@ const ImageResult: React.FC<ImageResultProps> = ({
                   <button 
                     className="control-button"
                     onClick={handleShare}
-                    title="Share via QR Code"
-                    aria-label="Share via QR Code"
+                    title="Show QR Code"
+                    aria-label="Show QR Code"
                   >
-                    <Icon name="target" size={16} />
-                    share QR
+                    <Icon name="qr" size={16} />
+                    scan to download
                   </button>
                   
                   <button 
@@ -408,7 +408,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
                 />
               </div>
               <p className="qr-modal-subtitle">
-                Scan this code with your phone to view and download the image
+                scan this code with your phone to view and download the image
               </p>
             </div>
           </div>

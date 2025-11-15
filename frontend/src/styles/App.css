@@ -1107,26 +1107,32 @@ a:hover {
   position: absolute;
   top: var(--space-md);
   right: var(--space-md);
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.05);
   border: none;
+  background: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
   z-index: 1;
+  line-height: 0.9;
 }
 
 .qr-modal-close:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: none;
   transform: scale(1.1);
 }
 
 .qr-modal-close .icon {
   filter: brightness(0) saturate(100%);
+  opacity: 0.4;
+  transition: all 0.2s ease;
+}
+
+.qr-modal-close:hover .icon {
   opacity: 0.6;
 }
 
@@ -1152,7 +1158,7 @@ a:hover {
   padding: var(--space-xl);
   background: var(--bg-primary);
   border-radius: var(--radius-lg);
-  border: 2px solid var(--cream);
+  border: 2px solid #F5F5F5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1390,12 +1396,14 @@ a:hover {
   justify-content: center;
   z-index: 9999;
   cursor: pointer;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .image-modal-container {
   position: relative;
   max-width: 95vw;
   max-height: 95vh;
+  animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .image-modal-content {
