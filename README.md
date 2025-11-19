@@ -164,7 +164,7 @@ The following examples showcase how the system transforms simple sketches into v
 ![Camel Sketch Results](./docs/images/camel_sketch_comparison_grid.png)
 ![Car Sketch Results](./docs/images/racecar_sketch_comparison_grid.png)
 ![Cat Sketch Results](./docs/images/person_sketch_comparison_grid.png)
-<!-- ![House Sketch Results](./docs/images/house_sketch_comparison_grid.png) -->
+![House Sketch Results](./docs/images/house_sketch_comparison_grid.png)
 ![Landscape Sketch Results](./docs/images/lighter_sketch_comparison_grid.png)
 
 ## Limitations
