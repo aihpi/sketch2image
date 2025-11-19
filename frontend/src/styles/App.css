@@ -1130,6 +1130,8 @@ a:hover {
   filter: brightness(0) saturate(100%);
   opacity: 0.4;
   transition: all 0.2s ease;
+  width: 1rem;
+  height: 1rem;
 }
 
 .qr-modal-close:hover .icon {
@@ -1554,6 +1556,38 @@ a:hover {
     height: var(--thumbnail-size);
   }
 
+  .image-modal-close {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    left: auto;
+    z-index: 10000;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--border-light);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px var(--shadow-light);
+  }
+
+  .image-modal-close .icon {
+    filter: brightness(0) saturate(100%) invert(1);
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    width: var(--space-lg);
+    height: var(--space-lg);
+  }
+
+  .image-modal-close:hover {
+    background: rgba(255, 255, 255, 0.20);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px var(--shadow-medium);
+  }
+
   /* Tablet progress adjustments */
   .progress-spinner-modern {
     width: 70px;
@@ -1577,6 +1611,16 @@ a:hover {
   .qr-code-image {
     width: 240px;
     height: 240px;
+  }
+
+  .control-button .button-text {
+    display: none;
+  }
+  
+  .control-button {
+    min-width: auto;
+    padding: var(--space-sm);
+    gap: 0;
   }
 }
 
@@ -1938,9 +1982,10 @@ a:hover {
   }
   
   .control-button {
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-xs) var(--space-sm);
     font-size: var(--text-xs);
-    min-width: 80px;
+    min-width: 50px;
+    gap: 4px;
   }
 
   .loading-text {
@@ -2012,7 +2057,7 @@ a:hover {
 
   /* QR Code Modal Small Mobile Adjustments */
   .qr-modal-container {
-    padding: var(--space-xl);
+    padding: var(--space-xl) var(--space-5xl);
   }
 
   .qr-modal-title {
@@ -2020,12 +2065,29 @@ a:hover {
   }
 
   .qr-code-wrapper {
-    padding: var(--space-md);
+    padding: var(--space-sm);
   }
 
   .qr-code-image {
     width: 180px;
     height: 180px;
+  }
+
+  .qr-modal-content {
+    gap: var(--space-md);
+  }
+}
+
+/* Extra Small Screens - Icon-only buttons */
+@media (max-width: 400px) {
+  .control-button .button-text {
+    display: none;
+  }
+  
+  .control-button {
+    min-width: auto;
+    padding: var(--space-sm);
+    gap: 0;
   }
 }
 

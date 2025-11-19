@@ -335,7 +335,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
                     aria-label="Download Image"
                   >
                     <Icon name="download" size={16} />
-                    download
+                    <span className="button-text">download</span>
                   </button>
                   
                   <button 
@@ -345,7 +345,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
                     aria-label="Show QR Code"
                   >
                     <Icon name="qr" size={16} />
-                    scan to download
+                    <span className="button-text">scan to download</span>
                   </button>
                   
                   <button 
@@ -355,7 +355,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
                     aria-label="View Full Size"
                   >
                     <Icon name="expand" size={16} />
-                    view full size
+                    <span className="button-text">view full size</span>
                   </button>
                 </div>
               </div>

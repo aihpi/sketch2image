@@ -324,7 +324,7 @@
 /* Colorblind Toggle Button Styles */
 .colorblind-toggle {
   position: fixed;
-  top: 20px;
+  top: 45px;
   right: 20px;
   z-index: 1000;
   display: flex;
@@ -369,9 +369,23 @@
 }
 
 /* Mobile adjustments */
+@media (max-width: 1024px) {
+  .colorblind-toggle {
+    top: 33px;
+    right: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .colorblind-toggle svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
 @media (max-width: 768px) {
   .colorblind-toggle {
-    top: 10px;
+    top: 5vw;
     right: 10px;
     padding: 8px 12px;
     font-size: 12px;
@@ -389,10 +403,9 @@
   }
   
   .colorblind-toggle {
-    padding: 8px;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 35px;
+    height: 35px;
     justify-content: center;
   }
 }
