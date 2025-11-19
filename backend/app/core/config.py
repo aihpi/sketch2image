@@ -11,6 +11,9 @@ class Settings:
     PORT: int = int(os.getenv("PORT", "8000"))
     DEBUG_MODE: bool = os.getenv("DEBUG_MODE", "False").lower() == "true"
     
+    # Public URL for QR code generation (should be set to your domain in production)
+    PUBLIC_URL: str = os.getenv("PUBLIC_URL", "http://localhost:3000")
+    
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:8000", 

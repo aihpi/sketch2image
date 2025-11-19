@@ -32,6 +32,8 @@ const ImageResult: React.FC<ImageResultProps> = ({
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const { resetTrigger } = useReset();
 
   useEffect(() => {
@@ -42,6 +44,8 @@ const ImageResult: React.FC<ImageResultProps> = ({
       setImageUrls([]);
       setProgress(null);
       setIsConnected(false);
+      setShowQRCode(false);
+      setQrCodeUrl('');
     }
   }, [resetTrigger, setGenerationResult]);
 
@@ -51,6 +55,8 @@ const ImageResult: React.FC<ImageResultProps> = ({
       setSelectedImageIndex(0);
       setImageUrls([]);
       setProgress(null);
+      setShowQRCode(false);
+      setQrCodeUrl('');
       
       if (generationResult.status === 'processing') {
         setIsLoading(false); // Turn off any old loading overlay
@@ -169,12 +175,25 @@ const ImageResult: React.FC<ImageResultProps> = ({
     }
   };
 
+  const handleShare = () => {
+    if (result?.generation_id) {
+      const imageIndex = selectedImageIndex + 1;
+      const qrUrl = `/api/share/${result.generation_id}?image_index=${imageIndex}`;
+      setQrCodeUrl(qrUrl);
+      setShowQRCode(true);
+    }
+  };
+
   const handleMaximize = () => {
     setIsMaximized(true);
   };
 
   const handleCloseMaximized = () => {
     setIsMaximized(false);
+  };
+
+  const handleCloseQRCode = () => {
+    setShowQRCode(false);
   };
 
   const handleThumbnailClick = (index: number) => {
@@ -205,15 +224,19 @@ const ImageResult: React.FC<ImageResultProps> = ({
     }
   };
 
-  // Handle escape key to close maximized view
+  // Handle escape key to close maximized view or QR code
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isMaximized) {
-        setIsMaximized(false);
+      if (e.key === 'Escape') {
+        if (isMaximized) {
+          setIsMaximized(false);
+        } else if (showQRCode) {
+          setShowQRCode(false);
+        }
       }
     };
 
-    if (isMaximized) {
+    if (isMaximized || showQRCode) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
     }
@@ -222,7 +245,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isMaximized]);
+  }, [isMaximized, showQRCode]);
 
   // Show progress within placeholder during generation
   if (progress && result?.generation_id) {
@@ -312,7 +335,17 @@ const ImageResult: React.FC<ImageResultProps> = ({
                     aria-label="Download Image"
                   >
                     <Icon name="download" size={16} />
-                    download
+                    <span className="button-text">download</span>
+                  </button>
+                  
+                  <button 
+                    className="control-button"
+                    onClick={handleShare}
+                    title="Show QR Code"
+                    aria-label="Show QR Code"
+                  >
+                    <Icon name="qr" size={16} />
+                    <span className="button-text">scan to download</span>
                   </button>
                   
                   <button 
@@ -322,7 +355,7 @@ const ImageResult: React.FC<ImageResultProps> = ({
                     aria-label="View Full Size"
                   >
                     <Icon name="expand" size={16} />
-                    view full size
+                    <span className="button-text">view full size</span>
                   </button>
                 </div>
               </div>
@@ -352,6 +385,35 @@ const ImageResult: React.FC<ImageResultProps> = ({
           </div>
         )}
       </div>
+
+      {/* QR Code Modal */}
+      {showQRCode && qrCodeUrl && (
+        <div className="qr-modal-overlay" onClick={handleCloseQRCode}>
+          <div className="qr-modal-container" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="qr-modal-close"
+              onClick={handleCloseQRCode}
+              title="Close"
+              aria-label="Close QR code"
+            >
+              <Icon name="close" size={20} />
+            </button>
+            <div className="qr-modal-content">
+              <h3 className="qr-modal-title">Scan to download on your device</h3>
+              <div className="qr-code-wrapper">
+                <img 
+                  src={qrCodeUrl}
+                  alt="QR Code for sharing" 
+                  className="qr-code-image"
+                />
+              </div>
+              <p className="qr-modal-subtitle">
+                scan this code with your phone to view and download the image
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isMaximized && imageUrls.length > 0 && (
         <div className="image-modal-overlay" onClick={handleCloseMaximized}>
