@@ -17,7 +17,7 @@ from diffusers import (
 from diffusers.utils import load_image
 import torchvision.transforms as T
 from app.core.config import settings
-from app.services.progress_tracker import update_progress
+from app.services.progress_tracker import update_progress, create_progress_gif
 
 load_dotenv()
 model_cache = {}
@@ -307,6 +307,12 @@ def save_results_and_metadata(sketch_hash: str, images: list, metadata: dict, ge
         image.save(result_path)
         result_files.append(result_filename)
         print(f"Saved result {i+1} to {result_path}")
+    
+    # Create progress GIF from intermediate images
+    gif_path = os.path.join(settings.DATASET_RESULT_DIR, f"gif/{sketch_hash}_progress.gif")
+    if create_progress_gif(sketch_hash, gif_path):
+        print(f"Created progress GIF: {gif_path}")
+        metadata["progress_gif"] = f"{sketch_hash}_progress.gif"
     
     # Update metadata with file info
     metadata["file_info"] = {
