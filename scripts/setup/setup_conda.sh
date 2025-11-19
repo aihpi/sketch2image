@@ -82,6 +82,7 @@ OUTPUT_IMAGE_SIZE=512
 
 # Frontend Settings
 FRONTEND_URL=http://localhost:3000
+PUBLIC_URL=http://10.60.37.49:3000
 
 # Dataset Directory (direct save)
 DATASET_DIR=dataset

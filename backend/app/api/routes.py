@@ -2,10 +2,12 @@ import os
 import hashlib
 import json
 import time
+import qrcode
+import io
 from datetime import datetime
 from typing import List
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, Response, HTMLResponse
 from app.core.config import settings
 from app.services.generation import generate_image_from_sketch, load_model_pipeline
 from app.services.progress_tracker import update_progress, get_progress, remove_progress
@@ -38,6 +40,25 @@ def save_generation_metadata(sketch_hash: str, metadata: dict):
     metadata_path = os.path.join(settings.DATASET_METADATA_DIR, f"{sketch_hash}.json")
     with open(metadata_path, 'w') as f:
         json.dump(metadata, f, indent=2)
+
+def generate_qr_code(url: str) -> bytes:
+    """Generate QR code image as bytes"""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to bytes
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='PNG')
+    img_byte_arr.seek(0)
+    return img_byte_arr.getvalue()
 
 @router.get("/styles", response_model=List[StyleOption])
 async def get_styles():
@@ -255,3 +276,131 @@ async def get_generated_image(image_id: str):
     }
     
     return FileResponse(result_path, headers=headers)
+
+@router.get("/share/{generation_id}")
+async def get_share_qr_code(generation_id: str, image_index: int = 1):
+    """Generate QR code for sharing the generated image"""
+    # Check if generation exists
+    metadata_path = os.path.join(settings.DATASET_METADATA_DIR, f"{generation_id}.json")
+    
+    if not os.path.exists(metadata_path):
+        raise HTTPException(status_code=404, detail="Generation not found")
+    
+    with open(metadata_path, 'r') as f:
+        metadata = json.load(f)
+    
+    if "file_info" not in metadata:
+        raise HTTPException(status_code=400, detail="Generation not completed yet")
+    
+    result_count = metadata["file_info"]["result_count"]
+    
+    # Validate image index
+    if image_index < 1 or image_index > result_count:
+        raise HTTPException(status_code=400, detail=f"Invalid image index. Valid range: 1-{result_count}")
+    
+    # Generate shareable URL
+    base_url = settings.PUBLIC_URL or "http://localhost:3000"
+    
+    if result_count == 1:
+        share_url = f"{base_url}/api/shared/{generation_id}"
+    else:
+        share_url = f"{base_url}/api/shared/{generation_id}/{image_index}"
+    
+    # Generate QR code
+    qr_bytes = generate_qr_code(share_url)
+    
+    return Response(content=qr_bytes, media_type="image/png")
+
+@router.get("/shared/{generation_id}")
+@router.get("/shared/{generation_id}/{image_index}")
+async def get_shared_image(generation_id: str, image_index: int = 1):
+    """Public endpoint to view and download shared images"""
+    # Check if generation exists
+    metadata_path = os.path.join(settings.DATASET_METADATA_DIR, f"{generation_id}.json")
+    
+    if not os.path.exists(metadata_path):
+        raise HTTPException(status_code=404, detail="Generation not found")
+    
+    with open(metadata_path, 'r') as f:
+        metadata = json.load(f)
+    
+    if "file_info" not in metadata:
+        raise HTTPException(status_code=400, detail="Generation not completed yet")
+    
+    result_count = metadata["file_info"]["result_count"]
+    
+    # Validate image index
+    if image_index < 1 or image_index > result_count:
+        raise HTTPException(status_code=400, detail=f"Invalid image index. Valid range: 1-{result_count}")
+    
+    # Construct the correct image URL
+    if result_count == 1:
+        image_url = f"/api/images/{generation_id}"
+    else:
+        image_url = f"/api/images/{generation_id}_{image_index}"
+    
+    # Return simple HTML page that displays the image
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Shared Image - Sketch to Image</title>
+        <style>
+            body {{
+                margin: 0;
+                padding: 20px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+                background: #f5f5f5;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+            }}
+            .container {{
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                max-width: 800px;
+                width: 100%;
+            }}
+            h1 {{
+                margin: 0 0 20px 0;
+                font-size: 24px;
+                color: #333;
+            }}
+            img {{
+                width: 100%;
+                height: auto;
+                border-radius: 4px;
+                display: block;
+            }}
+            .download-btn {{
+                display: inline-block;
+                margin-top: 20px;
+                padding: 12px 24px;
+                background: #0A6A99;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                font-weight: 500;
+            }}
+            .download-btn:hover {{
+                background: #085580;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Generated Image</h1>
+            <img src="{image_url}" alt="Generated image from sketch">
+            <a href="{image_url}" download="generated-image.png" class="download-btn">Download Image</a>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return HTMLResponse(content=html_content)

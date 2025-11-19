@@ -25,7 +25,7 @@ const ColorblindToggle: React.FC = () => {
         <circle cx="12" cy="12" r="3"></circle>
       </svg>
       <span className="toggle-text">
-        {isColorblindMode ? 'Standard' : 'Accessible'}
+        {isColorblindMode ? 'standard' : 'accessible'}
       </span>
     </button>
   );
