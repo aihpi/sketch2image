@@ -19,3 +19,8 @@ export interface GenerationResult {
   message: string;
   image_url?: string;
 }
+
+export interface EnhancedPromptResult {
+  original_prompt: string;
+  enhanced_prompt: string;
+}

@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Excalidraw, exportToBlob } from '@excalidraw/excalidraw';
-import { generateImage } from '../services/api';
+import { generateImage, enhancePrompt } from '../services/api';
 import { Style, Model, GenerationResult } from '../types';
 import { useReset } from '../ResetContext';
 import Icon from './Icon';
@@ -43,6 +43,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const excalidrawRef = useRef<any>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { triggerReset } = useReset();
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   // Set up the global reference when canvas component mounts
   useEffect(() => {
@@ -64,11 +65,63 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     }
   }, [showControlsOnly]);
 
+  const handleEnhancePrompt = async () => {
+    const excalidrawInstance = globalExcalidrawRef || excalidrawRef.current;
+    
+    if (!excalidrawInstance) {
+      showNotification('canvas is not initialized', 'error');
+      return;
+    }
+
+    const elements = excalidrawInstance.getSceneElements();
+    if (!elements || elements.length === 0) {
+      showNotification('please draw something first', 'error');
+      return;
+    }
+
+    if (!description.trim()) {
+      showNotification('please add a description first', 'error');
+      return;
+    }
+
+    try {
+      setIsEnhancing(true);
+
+      const appState = excalidrawInstance.getAppState();
+      const exportAppState = {
+        ...appState,
+        exportWithDarkMode: false,
+        exportBackground: true,
+        viewBackgroundColor: '#ffffff',
+      };
+
+      const blob = await exportToBlob({
+        elements,
+        appState: exportAppState,
+        mimeType: 'image/png',
+        files: null,
+      });
+
+      const file = new File([blob], 'sketch.png', { type: 'image/png' });
+
+      const result = await enhancePrompt(file, description);
+      
+      setDescription(result.enhanced_prompt);
+      showNotification('prompt enhanced successfully', 'success');
+      
+    } catch (error) {
+      console.error('Failed to enhance prompt:', error);
+      showNotification('failed to enhance prompt', 'error');
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   const handleGenerateImage = async () => {
     const excalidrawInstance = globalExcalidrawRef || excalidrawRef.current;
     
     if (!excalidrawInstance) {
-      showNotification('Canvas is not initialized. Please wait for the canvas to load.', 'error');
+      showNotification('canvas is not initialized', 'error');
       return;
     }
 
@@ -94,7 +147,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     }
 
     try {
-      setIsLoading(false); // Remove old loading overlay
+      setIsLoading(false);
 
       const appState = excalidrawInstance.getAppState();
 
@@ -120,7 +173,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       
     } catch (error) {
       console.error('Failed to generate image:', error);
-      showNotification('Failed to generate image. Please try again.', 'error');
+      showNotification('failed to generate image', 'error');
       setIsLoading(false);
     }
   };
@@ -151,6 +204,14 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   if (showControlsOnly) {
     return (
       <div className="canvas-controls">
+        <button 
+          className="enhance-button"
+          onClick={handleEnhancePrompt}
+          disabled={isEnhancing}
+        >
+          <Icon name="sparkle" size={16} />
+          {isEnhancing ? 'enhancing...' : 'enhance prompt'}
+        </button>
         <button 
           className="generate-button"
           onClick={handleGenerateImage}
@@ -245,6 +306,14 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       </div>
       
       <div className="canvas-controls">
+        <button 
+          className="enhance-button"
+          onClick={handleEnhancePrompt}
+          disabled={isEnhancing}
+        >
+          <Icon name="sparkle" size={16} />
+          {isEnhancing ? 'enhancing...' : 'enhance prompt'}
+        </button>
         <button 
           className="generate-button"
           onClick={handleGenerateImage}

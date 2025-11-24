@@ -11,7 +11,8 @@ from fastapi.responses import FileResponse, StreamingResponse, Response, HTMLRes
 from app.core.config import settings
 from app.services.generation import generate_image_from_sketch, load_model_pipeline
 from app.services.progress_tracker import update_progress, get_progress, remove_progress
-from app.models.image import ImageResponse, StyleOption, ModelOption
+from app.services.prompt_enhancement import enhance_prompt_with_qwen
+from app.models.image import ImageResponse, StyleOption, ModelOption, EnhancedPromptResponse
 import asyncio
 
 router = APIRouter()
@@ -83,6 +84,42 @@ async def get_models():
             )
         )
     return models
+
+@router.post("/enhance-prompt", response_model=EnhancedPromptResponse)
+async def enhance_prompt(
+    sketch_file: UploadFile = File(...),
+    description: str = Form(...),
+):
+    """Enhance user's prompt using Qwen VLM"""
+    try:
+        # Read sketch content
+        sketch_content = await sketch_file.read()
+        
+        # Generate temporary hash for sketch
+        temp_hash = hashlib.sha256(sketch_content).hexdigest()[:16]
+        
+        # Save sketch temporarily
+        temp_sketch_path = os.path.join(settings.DATASET_SKETCH_DIR, f"temp_{temp_hash}.png")
+        with open(temp_sketch_path, "wb") as f:
+            f.write(sketch_content)
+        
+        # Enhance prompt with Qwen
+        enhanced_description = enhance_prompt_with_qwen(temp_sketch_path, description)
+        
+        # Clean up temporary file
+        try:
+            os.remove(temp_sketch_path)
+        except:
+            pass
+        
+        return EnhancedPromptResponse(
+            original_prompt=description,
+            enhanced_prompt=enhanced_description
+        )
+        
+    except Exception as e:
+        print(f"Error enhancing prompt: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/progress/{generation_id}")
 async def get_progress_stream(generation_id: str):

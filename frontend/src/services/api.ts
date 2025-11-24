@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Style, Model, GenerationResult } from '../types';
+import { Style, Model, GenerationResult, EnhancedPromptResult } from '../types';
 
 // Use relative path - proxy will handle routing
 const API_URL = '/api';
@@ -27,6 +27,28 @@ export const fetchModels = async (): Promise<Model[]> => {
     return response.data;
   } catch (error) {
     console.error('Error fetching models:', error);
+    throw error;
+  }
+};
+
+export const enhancePrompt = async (
+  sketchFile: File,
+  description: string
+): Promise<EnhancedPromptResult> => {
+  try {
+    const formData = new FormData();
+    formData.append('sketch_file', sketchFile);
+    formData.append('description', description);
+
+    const response = await api.post('/enhance-prompt', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error enhancing prompt:', error);
     throw error;
   }
 };

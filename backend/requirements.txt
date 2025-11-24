@@ -16,6 +16,7 @@ sentencepiece>=0.2.0
 matplotlib
 imageio>=2.31.0
 qrcode>=7.4.2
+vllm>=0.6.0
 
 torch
 torchvision

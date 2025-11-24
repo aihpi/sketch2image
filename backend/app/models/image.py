@@ -22,3 +22,8 @@ class ImageResponse(BaseModel):
     status: str  # "processing" or "completed"
     message: str
     image_url: Optional[str] = None
+
+class EnhancedPromptResponse(BaseModel):
+    """Response model for prompt enhancement"""
+    original_prompt: str
+    enhanced_prompt: str

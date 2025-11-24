@@ -2139,3 +2139,46 @@ a:hover {
     animation: none !important;
   }
 }
+
+/* Enhance button styling */
+.enhance-button {
+  padding: var(--space-lg);
+  font-size: var(--text-base);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  border-radius: var(--radius-lg);
+  background: var(--amethyst);
+  color: var(--non-photo-blue);
+}
+
+.enhance-button .icon {
+  filter: brightness(0) saturate(100%) invert(90%) sepia(90%) saturate(465%) hue-rotate(166deg) brightness(100%) contrast(103%);
+}
+
+.enhance-button:hover:not(:disabled) {
+  background: var(--persian-pink);
+  color: var(--text-on-color);
+  box-shadow: 0 4px 15px var(--shadow-medium);
+  transform: translateY(-2px);
+}
+
+.enhance-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Update canvas controls to accommodate three buttons */
+.canvas-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
