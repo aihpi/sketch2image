@@ -239,9 +239,11 @@ def load_model_pipeline(model_id):
             pipeline = FluxControlPipeline.from_pretrained(
                 huggingface_id,
                 torch_dtype=torch_dtype,
+                device_map="balanced"
             )
         
-        pipeline = pipeline.to(device)
+        if model_id != "flux_canny":
+            pipeline = pipeline.to(device)
         
         if device == "cuda":
             try:
