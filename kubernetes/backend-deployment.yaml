@@ -43,6 +43,8 @@ spec:
           value: "7.5"
         - name: OUTPUT_IMAGE_SIZE
           value: "512"
+        - name: PUBLIC_URL
+          value: "https://s2i.aisc.hpi.de"
         - name: HUGGING_FACE_HUB_TOKEN
           valueFrom:
             secretKeyRef:
