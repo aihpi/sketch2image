@@ -21,6 +21,7 @@ services:
       - NUM_INFERENCE_STEPS=20
       - GUIDANCE_SCALE=7.5
       - OUTPUT_IMAGE_SIZE=512
+      - PUBLIC_URL=${PUBLIC_URL:-http://localhost:3000}
     networks:
       - sketch2image
 
